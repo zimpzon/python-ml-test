@@ -1,57 +1,96 @@
 import torch
-import torch.nn as nn
-import torch.optim as optim
+import matplotlib.pyplot as plt
+import time
+
+# Define the neural network
 
 
-class Multiplier(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size):
-        super(Multiplier, self).__init__()
-        self.fc1 = nn.Linear(input_size, hidden_size)
-        self.fc2 = nn.Linear(hidden_size, output_size)
+class Net(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc1 = torch.nn.Linear(2, 100)
+        self.fc2 = torch.nn.Linear(100, 100)
+        self.fc3 = torch.nn.Linear(100, 1)
+        self.dropout = torch.nn.Dropout(0.5)
 
     def forward(self, x):
         x = torch.relu(self.fc1(x))
-        x = self.fc2(x)
+        x = torch.relu(self.fc2(x))
+        x = self.fc3(x)
         return x
 
 
-def train(model, criterion, optimizer, x_train, y_train, epochs):
-    for epoch in range(epochs):
-        optimizer.zero_grad()
-        outputs = model(x_train)
-        loss = criterion(outputs, y_train)
-        loss.backward()
-        optimizer.step()
+# Define the loss function
+loss_fn = torch.nn.loss()
 
-        if (epoch+1) % 1000 == 0:
-            print(f'Epoch [{epoch+1}/{epochs}], Loss: {loss.item():.4f}')
+# Define the training data
+x_train = torch.randn(10000, 2)
+y_train = x_train[:, 0] * x_train[:, 1]
+
+# Define the test data
+x_test2 = torch.Tensor([[2, 3], [4, 5], [6, 7]])
+y_test2 = x_test2[:, 0] * x_test2[:, 1]
+
+x_test = torch.Tensor([[i, j] for i in range(1, 101, 10)
+                      for j in range(1, 101, 10)])
+y_test = x_test[:, 0] * x_test[:, 1]
 
 
-if __name__ == '__main__':
-    input_size = 2
-    hidden_size = 200
-    output_size = 1
-    learning_rate = 0.001
-    epochs = 10000
+# Initialize the model and optimizer
+net = Net()
+optimizer = torch.optim.Adam(net.parameters(), lr=0.01)
 
-    model = Multiplier(input_size, hidden_size, output_size)
-    criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+# Train the model
+train_losses = []
+test_losses = []
+fig, ax = plt.subplots()
+ax.set_xlabel('Epoch')
+ax.set_ylabel('Loss')
+ax.plot(train_losses, 'g', label='Training Loss')
+ax.plot(test_losses, 'r', label='Test Loss', )
+ax.legend()
 
-    # Generate training data
-    x_train = torch.tensor([[i, j] for i in range(1, 10)
-                           for j in range(1, 10)], dtype=torch.float32)
-    y_train = torch.tensor([[i * j] for i in range(1, 10)
-                           for j in range(1, 10)], dtype=torch.float32)
+plt.ion()
 
-    # Train the model
-    train(model, criterion, optimizer, x_train, y_train, epochs)
 
-    # Test the model
+def update_graph(train_losses, test_losses):
+    ax.plot(train_losses, 'g', label='Training Loss')
+    ax.plot(test_losses, 'r', label='Test Loss', )
+    fig.canvas.draw()
+    plt.pause(0.001)
+
+
+start_time = time.time()
+for epoch in range(10000):
+    optimizer.zero_grad()
+    outputs = net(x_train)
+    loss = loss_fn(outputs.view(-1), y_train)
+    loss.backward()
+    optimizer.step()
+    train_losses.append(loss.item())
+
+    # Test the model on the test data
     with torch.no_grad():
-        x_test = torch.tensor(
-            [[3.0, 5.0], [6.0, 7.0], [80.0, 10.0]], dtype=torch.float32)
-        y_test = model(x_test)
-        print('Test results:')
-        for i in range(len(x_test)):
-            print(f'{x_test[i][0]} * {x_test[i][1]} = {y_test[i][0]:.2f}')
+        net.eval()
+        y_pred = net(x_test).view(-1)
+        test_loss = loss_fn(y_pred, y_test)
+        test_losses.append(test_loss.item())
+    net.train()
+
+    # Update the graph every 0.5 seconds
+    if time.time() - start_time > 0.5:
+        update_graph(train_losses, test_losses)
+        start_time = time.time()
+
+    print(
+        f'Epoch {epoch+1}/{100}, Train Loss: {loss.item():.4f}, Test Loss: {test_loss.item():.4f}')
+
+update_graph(train_losses, test_losses)
+plt.show(block=True)
+
+# Test the model
+with torch.no_grad():
+    net.eval()
+    y_pred = net(x_test).view(-1)
+    test_loss = loss_fn(y_pred, y_test)
+print(f'Test loss: {test_loss.item():.4f}, Predictions: {y_pred.tolist()}')
