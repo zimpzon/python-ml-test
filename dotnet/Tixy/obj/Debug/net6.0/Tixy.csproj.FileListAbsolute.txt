@@ -1,0 +1,15 @@
+C:\Users\peter\source\repos\Tixy\Tixy\Tixy\bin\Debug\net6.0\Tixy.exe
+C:\Users\peter\source\repos\Tixy\Tixy\Tixy\bin\Debug\net6.0\Tixy.deps.json
+C:\Users\peter\source\repos\Tixy\Tixy\Tixy\bin\Debug\net6.0\Tixy.runtimeconfig.json
+C:\Users\peter\source\repos\Tixy\Tixy\Tixy\bin\Debug\net6.0\Tixy.dll
+C:\Users\peter\source\repos\Tixy\Tixy\Tixy\bin\Debug\net6.0\Tixy.pdb
+C:\Users\peter\source\repos\Tixy\Tixy\Tixy\obj\Debug\net6.0\Tixy.csproj.AssemblyReference.cache
+C:\Users\peter\source\repos\Tixy\Tixy\Tixy\obj\Debug\net6.0\Tixy.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\peter\source\repos\Tixy\Tixy\Tixy\obj\Debug\net6.0\Tixy.AssemblyInfoInputs.cache
+C:\Users\peter\source\repos\Tixy\Tixy\Tixy\obj\Debug\net6.0\Tixy.AssemblyInfo.cs
+C:\Users\peter\source\repos\Tixy\Tixy\Tixy\obj\Debug\net6.0\Tixy.csproj.CoreCompileInputs.cache
+C:\Users\peter\source\repos\Tixy\Tixy\Tixy\obj\Debug\net6.0\Tixy.dll
+C:\Users\peter\source\repos\Tixy\Tixy\Tixy\obj\Debug\net6.0\ref\Tixy.dll
+C:\Users\peter\source\repos\Tixy\Tixy\Tixy\obj\Debug\net6.0\Tixy.pdb
+C:\Users\peter\source\repos\Tixy\Tixy\Tixy\obj\Debug\net6.0\Tixy.genruntimeconfig.cache
+C:\Users\peter\source\repos\Tixy\Tixy\Tixy\obj\Debug\net6.0\refint\Tixy.dll
