@@ -1,0 +1,61 @@
+﻿
+Store games so they can be replayed
+
+NB NB NB: In aplha0 policy and value is ONE network. State value is just another output param.
+	achually... two output heads? what is that?
+
+INPUT (nice and simple :) )
+w * h * planes
+8 planes for types, 4 for each player (though some are symmetric). 0 or 1, is it there or not.
+whos-turn plane (all 1 for player1 or all 0 for player2) (alpha0 uses 1 for white)
+
+
+OUTPUT
+w * h * 8
+w * h is every position on the board
+8 is every possible move from that position.
++ a single scalar for value of input state for the current player.
+
+So, ignoring invalid moves, we find the highest value which identifies a piece (x, y) and where to move it.
+
+
+----------------------------------------------------------------
+
+
+AlphaZero uses a neural network to represent the game board for games like chess, shogi, and Go. For chess, the input to the neural network is a compact representation of the current board position. The board state is encoded as a 3D tensor, with dimensions 8x8x(14x2+7) = 8x8x119.
+
+The input tensor is composed of several planes or layers, each of which represents a specific piece type for both players, as well as some additional information about the game state.
+
+Piece-centric planes: There are 12 planes representing the chess pieces (6 types of pieces for each player: pawn, knight, bishop, rook, queen, and king). Each plane is an 8x8 grid, with a binary value (0 or 1) indicating whether the corresponding piece occupies the square.
+
+Color-to-move plane: A single plane is used to indicate which player is to move next (1 for white, 0 for black). This plane is a uniform grid, with all squares having the same value.
+
+Castling availability planes: Four planes encode castling availability for both players (one for each castling option: white kingside, white queenside, black kingside, and black queenside). Each plane has a binary value, where 1 indicates that the corresponding castling option is available, and 0 indicates that it is not.
+
+En passant target square plane: A single 8x8 plane is used to represent the en passant target square, if any. If there is a valid en passant target square, the corresponding square on this plane is set to 1, while all other squares are set to 0.
+
+Half-move clock plane: This plane represents the number of half-moves since the last pawn move or capture (used for the 50-move rule). The value of this plane is a constant value between 0 and 1, scaled by dividing the half-move count by 100.
+
+Full-move number plane: This plane encodes the full-move number, which is the number of complete moves played in the game. Like the half-move clock plane, the value of this plane is a constant value between 0 and 1, scaled by dividing the full-move number by 100.
+
+By encoding the board state in this compact tensor format, AlphaZero can efficiently process and learn from the input data using convolutional neural networks. This approach allows it to generalize and learn patterns across different positions and games effectively.
+
+
+----------------------------------------------------------------
+
+
+Yes, in AlphaZero, both the policy and value networks are part of a single neural network that takes the same input, which is the compact representation of the current board position. This single network has two separate output heads: one for the policy and one for the value.
+
+The architecture of the AlphaZero neural network is as follows:
+
+Input: The input is a 3D tensor representing the current board position, as I described in the previous answer.
+
+Convolutional layers: The input tensor is processed through a series of convolutional layers that help the network learn and recognize spatial patterns and structures present in the game positions.
+
+Residual layers: These layers are used to form a deep neural network, which allows AlphaZero to learn complex and long-term patterns. The residual connections help mitigate the vanishing gradient problem that can arise in deep networks.
+
+Output heads: After the convolutional and residual layers, the network splits into two separate output heads:
+a. Policy head: This part of the network processes the features from the previous layers and generates a policy vector representing the probability distribution over all possible moves from the current board position.
+b. Value head: This part of the network processes the same features from the previous layers and generates a value scalar, which estimates the winning chances of the current player from the given board position.
+
+By using a single network with shared layers for both policy and value, AlphaZero can efficiently learn from the input data and leverage shared knowledge between the policy and value tasks. This architecture enables the network to learn complex and abstract patterns and generalize well across different positions and games.

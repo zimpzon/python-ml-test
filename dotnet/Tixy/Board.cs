@@ -1,249 +1,102 @@
 ﻿namespace Tixy
 {
-    // Minimum information required:
-    // w, h
-    // piece types with valid moves
-    // pieces per player
-
-    // who's turn is it
-    // game rules
     public class Board : IBoard
     {
-        static Board()
-        {
-            CreatePieces();
-        }
+        public int W { get; }
+        public int H { get; }
+        public bool IsGameOver { get; private set; }
+        public int WinnerId { get; private set; }
 
-        public class Piece
-        {
-            public char Type { get; set; }
-            public int[,] ValidMoves { get; set; } = new int[3, 3];
-        }
-
-        public class PlayerPiece
-        {
-            public int OwnerId { get; set; }
-            public Piece? Piece { get; set; }
-            public int X { get; set; }
-            public int Y { get; set; }
-        }
-
-        public class BoardMove
-        {
-            public int X { get; set; }
-            public int Y { get; set; }
-            public int Dx { get; set; }
-            public int Dy { get; set; }
-        };
-
-        public static readonly Dictionary<char, Piece> PiecesTypes = new ();
-
-        public List<PlayerPiece> PlayerPieces = new ();
-        private readonly int _w;
-        private readonly int _h;
+        private readonly List<ActivePiece> _playerPieces = new();
 
         public Board(int w, int h)
         {
-            _w = w;
-            _h = h;
-
-            CreatePieces();
+            W = w;
+            H = h;
             Init();
         }
 
-        public List<BoardMove> GetValidMoves(PlayerPiece piece)
-        {
-            return new List<BoardMove>();
-        }
+        public static int IdOtherPlayer(int myId)
+            => myId == 1 ? 2 : 1;
+        
+        public static List<Move> GetValidMoves(ActivePiece activePiece)
+            => activePiece.Piece.ValidDirections.Select(vm => new Move { X0 = activePiece.X, Y0 = activePiece.Y, Dx = vm.dx, Dy = vm.dy }).ToList();
 
-        public bool ParseMoveCommand(string? cmd, out BoardMove? move)
-        {
-            move = null;
+        public List<ActivePiece> GetActivePieces(int? playerId = null)
+            => _playerPieces.Where(pp => playerId == null || pp.OwnerId == playerId).ToList();
 
-            if (cmd == null || cmd?.Length < 5 || cmd?.Length > 5 || cmd?[2] != ' ')
+        public ActivePiece GetPieceAt(int x, int y, int? playerId = null)
+            => _playerPieces.FirstOrDefault(p => p.X == x && p.Y == y && (playerId == null || p.OwnerId == playerId));
+
+        public bool IsValidMove(Move move, int playerId)
+        {
+            if (move == null || move.X0 < 0 || move.Y0 < 0 || move.X0 >= W || move.Y0 >= H || move.X1 < 0 || move.Y1 < 0 || move.X1 >= W || move.Y1 >= H)
                 return false;
 
-            int x0 = cmd[0] - 'A';
-            int y0 = _h - (cmd[1] - '1') - 1;
-
-            int x1 = cmd[3] - 'A';
-            int y1 = _h - (cmd[4] - '1') - 1;
-
-            int dx = x1 - x0;
-            int dy = y1 - y0;
-
-            move = new BoardMove
-            {
-                X = x0,
-                Y = y0,
-                Dx = dx,
-                Dy = dy
-            };
-
-            return true;           
-        }
-
-        public void Print()
-        {
-            Console.Write("  ");
-            for (int x = 0; x < _w; x++)
-                Console.Write((char)('A' + x));
-
-            Console.WriteLine();
-            for (int y = 0; y < _h; y++)
-            {
-                Console.Write((char)((_h - y) + '0'));
-                Console.Write(' ');
-                for (int x = 0; x < _w; x++)
-                {
-                    var piece = PlayerPieces.Where(p => p.X == x && p.Y == y).FirstOrDefault();
-                    Console.Write(piece?.Piece?.Type ?? '.');
-                }
-                Console.WriteLine();
-            }
-        }
-
-        public bool IsValidMove(BoardMove? move)
-        {
-            if (move == null ||move.X < 0 || move.Y < 0 || move.X >= _w || move.Y >= _h)
+            var playerPiece = GetPieceAt(move.X0, move.Y0, playerId);
+            if (playerPiece == null)
                 return false;
 
-            int newX = move.X + move.Dx;
-            int newY = move.Y + move.Dy;
-
-            if (newX < 0 || newY < 0 || newX >= _w || newY >= _h)
+            var directionIsValid = playerPiece.Piece.ValidDirections.Any(vm => vm.dx == move.Dx && vm.dy == move.Dy);
+            if (!directionIsValid)
                 return false;
 
+            var destinationPiece = GetPieceAt(move.X1, move.Y1);
+            if (destinationPiece?.OwnerId == playerId)
+                return false;
+            
             return true;
         }
 
-        public void Move(BoardMove? move)
+        public void Move(Move move, int playerId)
         {
-            if (move == null || !IsValidMove(move))
+            if (!IsValidMove(move, playerId))
                 throw new InvalidOperationException(nameof(move));
 
-            int newX = move.X + move.Dx;
-            int newY = move.Y + move.Dy;
+            var movedPiece = GetPieceAt(move.X0, move.Y0, playerId);
+            var takenPiece = GetPieceAt(move.X1, move.Y1);
+            if (takenPiece != null)
+            {
+                _playerPieces.Remove(takenPiece);
 
-            var playerPiece = PlayerPieces.Where(p => p.X == move.X && p.Y == move.Y).FirstOrDefault();
-            if (playerPiece == null)
-                throw new InvalidOperationException(nameof(move));
+                var otherPlayersPieces = _playerPieces.Where(pp => pp.OwnerId != playerId).ToList();
+                if (!otherPlayersPieces.Any())
+                {
+                    WinnerId = playerId;
+                    IsGameOver = true;
+                }
+            }
+            
+            movedPiece.X += move.Dx;
+            movedPiece.Y += move.Dy;
+        }
 
-            playerPiece.X += move.Dx;
-            playerPiece.Y += move.Dy;
+        public (int x, int y) FromStrPos(string p)
+        {
+            int x = p[0] - 'A';
+            int y = H - (p[1] - '1') - 1;
+            return (x, y);
         }
 
         public void Init()
         {
-            PlayerPieces.Clear();
+            _playerPieces.Clear();
 
-            PlayerPieces.Add(new PlayerPiece { OwnerId = 1, X = 0, Y = _h - 1, Piece = PiecesTypes['Y'] });
-            PlayerPieces.Add(new PlayerPiece { OwnerId = 1, X = 1, Y = _h - 1, Piece = PiecesTypes['I'] });
-            PlayerPieces.Add(new PlayerPiece { OwnerId = 1, X = 2, Y = _h - 1, Piece = PiecesTypes['X'] });
-            PlayerPieces.Add(new PlayerPiece { OwnerId = 1, X = 3, Y = _h - 1, Piece = PiecesTypes['I'] });
-            PlayerPieces.Add(new PlayerPiece { OwnerId = 1, X = 4, Y = _h - 1, Piece = PiecesTypes['Y'] });
+            void Add(int playerId, char type, string pos)
+            {
+                (int x, int y) = FromStrPos(pos);
+                _playerPieces.Add(new ActivePiece { OwnerId = playerId, X = x, Y = y, Piece = Pieces.PiecesTypes[type] });
+            }
 
-            PlayerPieces.Add(new PlayerPiece { OwnerId = 2, X = 0, Y = 0, Piece = PiecesTypes['Y'] });
-            PlayerPieces.Add(new PlayerPiece { OwnerId = 2, X = 1, Y = 0, Piece = PiecesTypes['I'] });
-            PlayerPieces.Add(new PlayerPiece { OwnerId = 2, X = 2, Y = 0, Piece = PiecesTypes['X'] });
-            PlayerPieces.Add(new PlayerPiece { OwnerId = 2, X = 3, Y = 0, Piece = PiecesTypes['I'] });
-            PlayerPieces.Add(new PlayerPiece { OwnerId = 2, X = 4, Y = 0, Piece = PiecesTypes['Y'] });
-        }
+            Add(1, 'T', "A1");
+            Add(1, 'I', "B1");
+            Add(1, 'X', "C1");
+            Add(1, 'Y', "D1");
 
-        private static void CreatePieces()
-        {
-            var pieceT1 = new Piece
-            {
-                Type = 'T',
-                ValidMoves = new int[,]
-                {
-                    { 1, 1, 1 },
-                    { 0, 0, 0 },
-                    { 0, 1, 0 }
-                }
-            };
-            var pieceI1 = new Piece
-            {
-                Type = 'I',
-                ValidMoves = new int[,]
-                {
-                    { 0, 1, 0 },
-                    { 0, 0, 0 },
-                    { 0, 1, 0 }
-                }
-            };
-            var pieceX1 = new Piece
-            {
-                Type = 'X',
-                ValidMoves = new int[,]
-                {
-                    { 1, 0, 1 },
-                    { 0, 0, 0 },
-                    { 1, 0, 1 }
-                }
-            };
-            var pieceY1 = new Piece
-            {
-                Type = 'Y',
-                ValidMoves = new int[,]
-                {
-                    { 1, 0, 1 },
-                    { 0, 0, 0 },
-                    { 0, 1, 0 }
-                }
-            };
-
-            var pieceT2 = new Piece
-            {
-                Type = 't',
-                ValidMoves = new int[,]
-    {
-                    { 0, 1, 0 },
-                    { 0, 0, 0 },
-                    { 1, 1, 1 }
-    }
-            };
-            var pieceI2 = new Piece
-            {
-                Type = 'i',
-                ValidMoves = new int[,]
-                {
-                    { 0, 1, 0 },
-                    { 0, 0, 0 },
-                    { 0, 1, 0 }
-                }
-            };
-            var pieceX2 = new Piece
-            {
-                Type = 'x',
-                ValidMoves = new int[,]
-                {
-                    { 1, 0, 1 },
-                    { 0, 0, 0 },
-                    { 1, 0, 1 }
-                }
-            };
-            var pieceY2 = new Piece
-            {
-                Type = 'y',
-                ValidMoves = new int[,]
-                {
-                    { 0, 1, 0 },
-                    { 0, 0, 0 },
-                    { 1, 0, 1 }
-                }
-            };
-
-
-            PiecesTypes[pieceT1.Type] = pieceT1;
-            PiecesTypes[pieceI1.Type] = pieceI1;
-            PiecesTypes[pieceX1.Type] = pieceX1;
-            PiecesTypes[pieceY1.Type] = pieceY1;
-
-            PiecesTypes[pieceT2.Type] = pieceT2;
-            PiecesTypes[pieceI2.Type] = pieceI2;
-            PiecesTypes[pieceX2.Type] = pieceX2;
-            PiecesTypes[pieceY2.Type] = pieceY2;
+            Add(2, 't', "A5");
+            Add(2, 'i', "B5");
+            Add(2, 'x', "C5");
+            Add(2, 'y', "D5");
         }
     }
 }

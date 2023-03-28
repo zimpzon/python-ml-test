@@ -4,22 +4,48 @@
     {
         private Board _board;
         private int _playerId;
-        private Random _rnd = new Random(42);
+        private readonly Random _rnd = new (42);
 
-        public void Init(Board board, int playerId)
+        public void Reset(Board board, int playerId)
         {
             _board = board;
             _playerId = playerId;
         }
 
-        public void TakeTurn()
+        public Move GetMove()
         {
-            var myPieces = _board.PlayerPieces.Where(pp => pp.OwnerId == _playerId).ToList();
+            var myPieces = _board.GetActivePieces(_playerId);
             if (myPieces.Count == 0)
-                return;
+                throw new InvalidOperationException("I have no pieces");
 
-            var piece = myPieces[_rnd.Next(myPieces.Count)];
-            var moves = _board.GetValidMoves(piece);
+            int cnt = 0;
+            while (true)
+            {
+                // Really want options ordered randomly, or removing the option once it's been tested.
+                int rndPieceIdx = _rnd.Next(myPieces.Count);
+                var selectedPiece = myPieces[rndPieceIdx];
+
+                int rndDirectionIdx = _rnd.Next(selectedPiece.Piece.ValidDirections.Count);
+                var (dx, dy) = selectedPiece.Piece.ValidDirections[rndDirectionIdx];
+
+                var move = new Move
+                {
+                    X0 = selectedPiece.X,
+                    Y0 = selectedPiece.Y,
+                    Dx = dx,
+                    Dy = dy,
+                };
+
+                if (!_board.IsValidMove(move, _playerId))
+                {
+                    if (cnt++ > 100)
+                        throw new InvalidOperationException("Failed to find a valid move after 100 attempts.");
+
+                    continue;
+                }
+                
+                return move;
+            }
         }
     }
 }
