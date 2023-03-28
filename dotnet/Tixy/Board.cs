@@ -1,4 +1,6 @@
-﻿namespace Tixy
+﻿using System.Text;
+
+namespace Tixy
 {
     public class Board : IBoard
     {
@@ -6,15 +8,26 @@
         public int H { get; }
         public bool IsGameOver { get; private set; }
         public int WinnerId { get; private set; }
-
+        
         private readonly List<ActivePiece> _playerPieces = new();
+        private readonly StringBuilder _sb = new (1000);
 
         public Board(int w, int h)
         {
             W = w;
             H = h;
+            Reset();
+        }
+
+        public void Reset()
+        {
+            _sb.Clear();
             Init();
         }
+
+        // Need starting state, game score, move list with discounted score per move, pair-wise moves for training
+        public string GetStoredMoves()
+            => _sb.ToString();
 
         public static int IdOtherPlayer(int myId)
             => myId == 1 ? 2 : 1;
@@ -69,6 +82,8 @@
             
             movedPiece.X += move.Dx;
             movedPiece.Y += move.Dy;
+
+            StoreMove(move);
         }
 
         public (int x, int y) FromStrPos(string p)
@@ -76,6 +91,14 @@
             int x = p[0] - 'A';
             int y = H - (p[1] - '1') - 1;
             return (x, y);
+        }
+
+        private void StoreMove(Move m)
+        {
+            _sb.Append((char)(m.X0 + 'A'));
+            _sb.Append((char)(H - m.Y0 + '0'));
+            _sb.Append((char)(m.X1 + 'A'));
+            _sb.Append((char)(H - m.Y1 + '0'));
         }
 
         public void Init()
