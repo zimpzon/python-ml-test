@@ -6,12 +6,13 @@ from PIL import Image
 import torchvision.transforms as transforms
 import numpy as np
 import matplotlib.pyplot as plt
+from torch.optim.lr_scheduler import StepLR
 
 # Load a single image
-image_path = 'c:\\temp\\img\\doggo.jpg'
+image_path = 'c:\\temp\\img\\dino.jpg'
 
 image = Image.open(image_path)
-image = image.resize((256, 256))
+image = image.resize((128, 64))
 # image.save('c:\\temp\\img\\spodoman_64.jpg')
 width, height = image.size
 
@@ -22,7 +23,7 @@ epochs = 100000000
 batch_size = 10
 learning_rate = 0.001
 
-ls = 512
+ls = 100
 
 print(f'layer-size: {ls}')
 
@@ -36,10 +37,10 @@ class Net(nn.Module):
         self.fc4 = nn.Linear(ls, ls)
         self.fc5 = nn.Linear(ls, ls)
         self.fc6 = nn.Linear(ls, ls)
-        self.fc7 = nn.Linear(ls, ls)
-        self.fc8 = nn.Linear(ls, ls)
-        self.fc9 = nn.Linear(ls, ls)
-        self.fc10 = nn.Linear(ls, ls)
+        # self.fc7 = nn.Linear(ls, ls)
+        # self.fc8 = nn.Linear(ls, ls)
+        # self.fc9 = nn.Linear(ls, ls)
+        # self.fc10 = nn.Linear(ls, ls)
         self.fc11 = nn.Linear(ls, 3)
 
     def forward(self, x):
@@ -49,10 +50,10 @@ class Net(nn.Module):
         x = torch.relu(self.fc4(x))
         x = torch.relu(self.fc5(x))
         x = torch.relu(self.fc6(x))
-        x = torch.relu(self.fc7(x))
-        x = torch.relu(self.fc8(x))
-        x = torch.relu(self.fc9(x))
-        x = torch.relu(self.fc10(x))
+        # x = torch.relu(self.fc7(x))
+        # x = torch.relu(self.fc8(x))
+        # x = torch.relu(self.fc9(x))
+        # x = torch.relu(self.fc10(x))
         x = self.fc11(x)
         return x
 
@@ -60,6 +61,7 @@ class Net(nn.Module):
 
 
 def create_dataset(image):
+    height, width = image.size
     x, y = np.meshgrid(np.arange(width), np.arange(height), indexing='ij')
     # Normalize the coordinates
     coords = np.stack([x.ravel()/(width-1) - 0.5,
@@ -87,6 +89,7 @@ else:
 
 criterion = nn.MSELoss()
 optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
+scheduler = StepLR(optimizer, step_size=1000, gamma=0.9)
 
 plt.ion()
 
@@ -110,15 +113,14 @@ def weighted_moving_average(data, window_size):
     return wma
 
 
-def update_view(current_epoch):
+def update_view():
     global img_counter
-    #    display_epoch = round(current_epoch / 10) * 10 + 10
 
-    max_value = np.amax(losses[-2000:])
+    max_value = np.amax(losses[-40:])
 
-    ax1.plot(losses, 'b')
-    ax1.set_xlim([0, current_epoch])
+    ax1.set_xlim([0, len(losses)])
     ax1.set_ylim([0, max_value])
+    ax1.plot(losses, 'b')
 
     losses_wma = weighted_moving_average(losses, 100)
     ax1.plot(losses_wma, 'y', label='WMA')
@@ -134,8 +136,13 @@ def update_view(current_epoch):
         pixels_pred = pixels_pred_tensor.numpy() * 255
 
     # Reshape the predicted pixel values into an image
-    image_pred = Image.fromarray(
-        np.uint8(np.clip(pixels_pred.reshape(height, width, 3), 0, 255)))
+    pixels_pred = pixels_pred.reshape(height, width, 3)
+    pixels_pred_clipped = np.clip(pixels_pred, 0, 255)
+    image_rgb = np.uint8(pixels_pred_clipped)
+    image_pred = Image.fromarray(image_rgb)
+
+    # image_pred = Image.fromarray(
+    #     np.uint8(np.clip(pixels_pred.reshape(height, width, 1), 0, 255)))
 
     # Show the predicted image in the second subplot
     ax3.imshow(image_pred)
@@ -144,11 +151,17 @@ def update_view(current_epoch):
 
 pix_sampled = 0
 
-# Yhis is not officially epochs, since an epoch requires seeing all training data. Ths is purely random.
+# This is not officially epochs, since an epoch requires seeing all training data. Ths is purely random.
 for epoch in range(epochs):
     start_time = time.time()
 
-    repeat = round(500 / batch_size)
+    fig.canvas.flush_events()
+
+    epoch_loss = 0
+    count = 0
+    scheduler.step()
+
+    repeat = 10
     for i in range(0, repeat):
         random_indices = np.random.choice(
             coords_tensor.shape[0], size=batch_size, replace=True)
@@ -164,20 +177,26 @@ for epoch in range(epochs):
         loss.backward()
         optimizer.step()
 
-        losses.append(loss.item())
+        epoch_loss += loss.item()
+        count += 1
 
         # Calculate the time for the epoch
         epoch_time = time.time() - start_time
 
         if time.time() > next_view:
+            loss = epoch_loss / count
+            losses.append(loss)
             print(
-                f"Epoch [{epoch+1}/{epochs}], Loss: {loss.item()}, Pix sampled: {pix_sampled}, Batch size: {batch_size}, lr: {learning_rate:.5f}")
-            update_view(epoch)
+                f"Epoch [{epoch+1}/{epochs}], Loss: {loss:.5}, Pix sampled: {pix_sampled}, Batch size: {batch_size}, lr: {optimizer.param_groups[0]['lr']:.5f}")
+            update_view()
+
+            epoch_loss = 0
+            count = 0
             # batch_size -= 20
             # if batch_size < 20:
             #     batch_size = 20
 
-            next_view = time.time() + 5
+            next_view = time.time() + 2
 
 print("Training completed.")
 
