@@ -4,23 +4,24 @@ namespace Tixy
 {
     public class Board : IBoard
     {
-        public int W { get; }
-        public int H { get; }
+        public static int W { get; } = 5;
+        public static int H { get; } = 5;
+        
         public bool IsGameOver { get; private set; }
         public int WinnerId { get; private set; }
         
         private readonly List<ActivePiece> _playerPieces = new();
         private readonly StringBuilder _sb = new (1000);
 
-        public Board(int w, int h)
+        public Board()
         {
-            W = w;
-            H = h;
             Reset();
         }
 
         public void Reset()
         {
+            IsGameOver = false;
+            WinnerId = 0;
             _sb.Clear();
             Init();
         }

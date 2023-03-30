@@ -9,3 +9,14 @@
         void Move(Move move, int playerId);
     }
 }
+
+
+
+public interface IPriorityQueue<T>
+{
+    bool TryDequeue(out T priority, out long value);
+    void Enqueue(T priority, long value);
+    void UpdatePriority(T priority, long value);
+    void Clear();
+    int Count { get; }
+}
