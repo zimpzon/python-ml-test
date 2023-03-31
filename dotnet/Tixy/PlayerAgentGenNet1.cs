@@ -29,25 +29,26 @@ namespace Tixy
         public Move GetMove()
         {
             List<BoardState> states = new ();
-            for (int i = 0; i < 10000; ++i)
+            for (int i = 0; i < 100000; ++i)
             {
                 _board.PlayerPieces.Clear();
 
-                char randomType = "tixy"[_rnd.Next(0, 4)];
+                char randomType = "TIXY"[_rnd.Next(0, 4)];
                 int x = _rnd.Next(0, Board.W);
                 int y = _rnd.Next(0, Board.H);
                 var p = _board.AddPiece(_playerId, randomType, x, y);
                 var moves = _board.GetPieceValidMoves(p);
                 var moveToOpponent = moves[_rnd.Next(0, moves.Count)];
 
-                // Start with 'i', expand to random opponent.
-                _board.AddPiece(Board.IdOtherPlayer(_playerId), 'i', moveToOpponent.X1, moveToOpponent.Y1);
+                char randomOpponentType = "tixy"[_rnd.Next(0, 4)];
+                _board.AddPiece(Board.IdOtherPlayer(_playerId), randomOpponentType, moveToOpponent.X1, moveToOpponent.Y1);
                 
                 var state = Util.ExportBoard(_board);
                 int dx = moveToOpponent.Dx;
                 int dy = moveToOpponent.Dy;
                 state.BestDirection = directionLookup[(dx, dy)];
                 state.DesiredDirections[state.BestDirection] = 1;
+
                 states.Add(state);
                     
                 _board.PlayerPieces.Clear();

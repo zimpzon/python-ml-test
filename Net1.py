@@ -18,17 +18,17 @@ class Net(nn.Module):
         self.bn1 = nn.BatchNorm1d(layer_size)
         self.layer2 = nn.Linear(layer_size, layer_size)
         self.bn2 = nn.BatchNorm1d(layer_size)
-        # self.layer3 = nn.Linear(layer_size, layer_size)
-        # self.bn3 = nn.BatchNorm1d(layer_size)
-        # self.layer4 = nn.Linear(layer_size, layer_size)
+        self.layer3 = nn.Linear(layer_size, layer_size)
+        self.bn3 = nn.BatchNorm1d(layer_size)
+        self.layer4 = nn.Linear(layer_size, layer_size)
         self.bn4 = nn.BatchNorm1d(layer_size)
         self.layer5 = nn.Linear(layer_size, 8)  # estimated best direction
 
     def forward(self, x):
         x = self.relu(self.bn1(self.layer1(x)))
         x = self.relu(self.bn2(self.layer2(x)))
-        # x = self.relu(self.bn3(self.layer3(x)))
-        # x = self.relu(self.bn4(self.layer4(x)))
+        x = self.relu(self.bn3(self.layer3(x)))
+        x = self.relu(self.bn4(self.layer4(x)))
         x = self.layer5(x)
         return x
 
@@ -71,13 +71,12 @@ if __name__ == "__main__":
     # Change the data type to long
     y_test = torch.tensor(y_test, dtype=torch.long)
 
-    # TODO: it converges almost instantly. At the same value every time. Why? It means.. data error, mismatch? Try simplified data.
-    layer_size = 1000
+    layer_size = 50
     epochs = 1000
     learning_rate = 0.001
     step_size = 100  # Decay the learning rate every x steps (or epochs)
     gamma = 0.8  # Decay factor
-    batch_size = 100
+    batch_size = 1000
 
     model = Net(layer_size)
     # Replace the loss function with CrossEntropyLoss
@@ -135,7 +134,7 @@ for epoch in range(epochs):
     fig.canvas.flush_events()
 
     print(
-        f"Epoch [{epoch+1}/{epochs}], Loss: {epoch_loss:.6f}, TestLoss: {test_loss:.6f},  Learning rate: {scheduler.get_last_lr()[0]:.6f}, Accuracy: {accuracy} ({correct_predictions}/{len(y_test)}), total_batches: {total_batches}")
+        f"Epoch [{epoch+1}/{epochs}], Loss: {epoch_loss:.6f}, TestLoss: {test_loss:.6f}, Learning rate: {scheduler.get_last_lr()[0]:.6f}, Accuracy: {accuracy:.4f} ({correct_predictions}/{len(y_test)}), total_batches: {total_batches}")
 
 with torch.no_grad():
     model.eval()
