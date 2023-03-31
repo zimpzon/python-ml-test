@@ -18,17 +18,17 @@ class Net(nn.Module):
         self.bn1 = nn.BatchNorm1d(layer_size)
         self.layer2 = nn.Linear(layer_size, layer_size)
         self.bn2 = nn.BatchNorm1d(layer_size)
-        self.layer3 = nn.Linear(layer_size, layer_size)
-        self.bn3 = nn.BatchNorm1d(layer_size)
-        self.layer4 = nn.Linear(layer_size, layer_size)
+        # self.layer3 = nn.Linear(layer_size, layer_size)
+        # self.bn3 = nn.BatchNorm1d(layer_size)
+        # self.layer4 = nn.Linear(layer_size, layer_size)
         self.bn4 = nn.BatchNorm1d(layer_size)
         self.layer5 = nn.Linear(layer_size, 8)  # estimated best direction
 
     def forward(self, x):
         x = self.relu(self.bn1(self.layer1(x)))
         x = self.relu(self.bn2(self.layer2(x)))
-        x = self.relu(self.bn3(self.layer3(x)))
-        x = self.relu(self.bn4(self.layer4(x)))
+        # x = self.relu(self.bn3(self.layer3(x)))
+        # x = self.relu(self.bn4(self.layer4(x)))
         x = self.layer5(x)
         return x
 
@@ -71,11 +71,13 @@ if __name__ == "__main__":
     # Change the data type to long
     y_test = torch.tensor(y_test, dtype=torch.long)
 
-    layer_size = 200
+    # TODO: it converges almost instantly. At the same value every time. Why? It means.. data error, mismatch? Try simplified data.
+    layer_size = 1000
     epochs = 1000
     learning_rate = 0.001
     step_size = 100  # Decay the learning rate every x steps (or epochs)
     gamma = 0.8  # Decay factor
+    batch_size = 100
 
     model = Net(layer_size)
     # Replace the loss function with CrossEntropyLoss
@@ -90,53 +92,60 @@ if __name__ == "__main__":
     plt.ion()
     plt.show()
 
-    for epoch in range(epochs):
-        epoch_loss = 0
-        random_indices = np.random.choice(
-            len(x_train), size=len(x_train), replace=False)
+    print(f'Training samples: {len(x_train)}')
+    print(f'Test samples: {len(x_test)}')
 
-        # full batch
+total_batches = 0
+for epoch in range(epochs):
+    epoch_loss = 0
+    batch_count = 0
+    for i in range(0, len(x_train), batch_size):
         optimizer.zero_grad()
-        x_batch = x_train[random_indices]
-        y_batch = y_train[random_indices]
+        x_batch = x_train[i:i+batch_size]
+        y_batch = y_train[i:i+batch_size]
         outputs = model(x_batch)
         loss = criterion(outputs, y_batch)
         loss.backward()
         optimizer.step()
-        scheduler.step()
-        epoch_loss = loss.item()
-        losses.append(epoch_loss)
+        epoch_loss += loss.item()
+        batch_count += 1
+        total_batches += 1
 
-        with torch.no_grad():
-            model.eval()
-            y_pred = model(x_test)
-            test_loss = criterion(y_pred, y_test).item()
-
-        test_losses.append(test_loss)
-
-        _, max_indices = torch.max(y_pred, dim=1)
-
-        # max_indices now contains the indices of the maximum values for each element in y_pred
-        correct_predictions = (max_indices == y_test).sum().item()
-        accuracy = correct_predictions / len(y_test)
-        accuracies.append(accuracy)
-
-        visualize_results(losses, accuracies, test_losses, loss_ax)
-        fig.canvas.draw()
-        fig.canvas.flush_events()
-
-        print(
-            f"Epoch [{epoch+1}/{epochs}], Loss: {epoch_loss:.6f}, TestLoss: {test_loss:.6f},  Learning rate: {scheduler.get_last_lr()[0]:.6f}, Accuracy: {accuracy} ({correct_predictions}/{len(y_test)})")
+    epoch_loss /= batch_count
+    losses.append(epoch_loss)
 
     with torch.no_grad():
         model.eval()
         y_pred = model(x_test)
         test_loss = criterion(y_pred, y_test).item()
 
-    print(f"Test loss: {test_loss:.6f}")
+    test_losses.append(test_loss)
 
-    # Save the model if desired
-    # torch.save(model.state_dict(), 'model.pth')
+    _, max_indices = torch.max(y_pred, dim=1)
 
-    plt.ioff()
-    plt.show()
+    # max_indices now contains the indices of the maximum values for each element in y_pred
+    correct_predictions = (max_indices == y_test).sum().item()
+    accuracy = correct_predictions / len(y_test)
+    accuracies.append(accuracy)
+
+    scheduler.step()
+
+    visualize_results(losses, accuracies, test_losses, loss_ax)
+    fig.canvas.draw()
+    fig.canvas.flush_events()
+
+    print(
+        f"Epoch [{epoch+1}/{epochs}], Loss: {epoch_loss:.6f}, TestLoss: {test_loss:.6f},  Learning rate: {scheduler.get_last_lr()[0]:.6f}, Accuracy: {accuracy} ({correct_predictions}/{len(y_test)}), total_batches: {total_batches}")
+
+with torch.no_grad():
+    model.eval()
+    y_pred = model(x_test)
+    test_loss = criterion(y_pred, y_test).item()
+
+print(f"Test loss: {test_loss:.6f}")
+
+# Save the model if desired
+# torch.save(model.state_dict(), 'model.pth')
+
+plt.ioff()
+plt.show()

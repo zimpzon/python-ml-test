@@ -24,11 +24,12 @@ namespace Tixy
             { (0, 1), 0 },
             { (-1, 1), 7 },
             { (-1, 0), 6 }
-            
-        }; public Move GetMove()
+        };
+        
+        public Move GetMove()
         {
             List<BoardState> states = new ();
-            for (int i = 0; i < 100000; ++i)
+            for (int i = 0; i < 10000; ++i)
             {
                 _board.PlayerPieces.Clear();
 
@@ -54,6 +55,10 @@ namespace Tixy
                 Util.StateToBoard(_board, state);
             }
 
+            for (int i = 0; i < 8; ++i)
+            {
+                Console.WriteLine($"{i} = {states.Count(s => s.BestDirection == i)}");
+            }
             File.WriteAllText("c:\\temp\\ml\\gen1.json", JsonSerializer.Serialize(states, new JsonSerializerOptions { WriteIndented = true }));
 
             return null;
