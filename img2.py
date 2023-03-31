@@ -20,7 +20,11 @@ class Net(nn.Module):
         self.bn3 = nn.BatchNorm1d(layer_size)
         self.layer4 = nn.Linear(layer_size, layer_size)
         self.bn4 = nn.BatchNorm1d(layer_size)
-        self.layer5 = nn.Linear(layer_size, 3)
+        self.layer5 = nn.Linear(layer_size, layer_size)
+        self.bn5 = nn.BatchNorm1d(layer_size)
+        self.layer6 = nn.Linear(layer_size, layer_size)
+        self.bn6 = nn.BatchNorm1d(layer_size)
+        self.layer7 = nn.Linear(layer_size, 3)
         self.relu = nn.ReLU()
 
     def forward(self, x):
@@ -28,7 +32,9 @@ class Net(nn.Module):
         x = self.relu(self.bn2(self.layer2(x)))
         x = self.relu(self.bn3(self.layer3(x)))
         x = self.relu(self.bn4(self.layer4(x)))
-        x = self.layer5(x)
+        x = self.relu(self.bn5(self.layer5(x)))
+        x = self.relu(self.bn6(self.layer6(x)))
+        x = self.layer7(x)
         return x
 
 
@@ -60,7 +66,7 @@ class MinValueStepLR(StepLR):
         return constrained_lr_list
 
 
-layer_size = 128
+layer_size = 256
 epochs = 500000
 batch_size = 200
 learning_rate = 0.001
@@ -163,10 +169,10 @@ def visualize_results(losses, model, coords_tensor, loss_ax, image_ax):
 
 
 if __name__ == "__main__":
-    image_path = 'c:\\temp\\img\\doggo.jpg'
+    image_path = 'c:\\temp\\img\\capture.jpg'
     image = Image.open(image_path)
     width, height = image.size
-    image = image.resize((128, 128))
+    image = image.resize((256, 256))
     width, height = image.size
 
     fig, (loss_ax, image_ax) = plt.subplots(1, 2, figsize=(10, 5))

@@ -2,11 +2,11 @@
 {
     public class PlayerAgentRandom : IPlayerAgent
     {
-        private Board _board;
+        private IBoard _board;
         private int _playerId;
         private readonly Random _rnd = new (42);
 
-        public void Reset(Board board, int playerId)
+        public void Reset(IBoard board, int playerId)
         {
             _board = board;
             _playerId = playerId;
@@ -14,7 +14,7 @@
 
         public Move GetMove()
         {
-            var myPieces = _board.GetActivePieces(_playerId);
+            var myPieces = _board.GetPlayerPieces(_playerId);
             if (myPieces.Count == 0)
                 throw new InvalidOperationException("I have no pieces");
 

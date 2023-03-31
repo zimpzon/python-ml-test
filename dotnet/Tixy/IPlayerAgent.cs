@@ -2,7 +2,7 @@
 {
     public interface IPlayerAgent
     {
-        void Reset(Board board, int playerId);
+        void Reset(IBoard board, int playerId);
         Move GetMove();
     }
 }

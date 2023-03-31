@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using Tixy;
 
-var player1 = new PlayerAgentConsole();
+var player1 = new PlayerAgentGen1();
 var player2 = new PlayerAgentRandom();
 
 int win1 = 0;

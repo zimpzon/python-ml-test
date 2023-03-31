@@ -10,7 +10,8 @@ namespace Tixy
         public bool IsGameOver { get; private set; }
         public int WinnerId { get; private set; }
         
-        private readonly List<ActivePiece> _playerPieces = new();
+        public List<ActivePiece> PlayerPieces { get; } = new();
+        
         private readonly StringBuilder _sb = new (1000);
 
         public Board()
@@ -32,16 +33,47 @@ namespace Tixy
 
         public static int IdOtherPlayer(int myId)
             => myId == 1 ? 2 : 1;
-        
-        public static List<Move> GetValidMoves(ActivePiece activePiece)
+
+        public List<Move> GetPieceDirections(ActivePiece activePiece)
             => activePiece.Piece.ValidDirections.Select(vm => new Move { X0 = activePiece.X, Y0 = activePiece.Y, Dx = vm.dx, Dy = vm.dy }).ToList();
 
-        public List<ActivePiece> GetActivePieces(int? playerId = null)
-            => _playerPieces.Where(pp => playerId == null || pp.OwnerId == playerId).ToList();
+        public List<Move> GetPieceValidMoves(ActivePiece activePiece)
+            => GetPieceDirections(activePiece).Where(m => IsValidMove(m, activePiece.OwnerId)).ToList();
+
+        public List<ActivePiece> GetPlayerPieces(int? playerId = null)
+            => PlayerPieces.Where(pp => playerId == null || pp.OwnerId == playerId).ToList();
 
         public ActivePiece GetPieceAt(int x, int y, int? playerId = null)
-            => _playerPieces.FirstOrDefault(p => p.X == x && p.Y == y && (playerId == null || p.OwnerId == playerId));
+            => PlayerPieces.FirstOrDefault(p => p.X == x && p.Y == y && (playerId == null || p.OwnerId == playerId));
 
+        public ActivePiece AddPiece(int playerId, char type, string pos)
+        {
+            (int x, int y) = FromStrPos(pos);
+            return AddPiece(playerId, type, x, y);
+        }
+
+        public ActivePiece AddPiece(int playerId, char type, int x, int y)
+        {
+            var newPiece = new ActivePiece { OwnerId = playerId, X = x, Y = y, Piece = Pieces.PiecesTypes[type] };
+            PlayerPieces.Add(newPiece);
+            return newPiece;
+        }
+
+        public void Init()
+        {
+            PlayerPieces.Clear();
+
+            AddPiece(1, 'T', "A1");
+            AddPiece(1, 'I', "B1");
+            AddPiece(1, 'X', "C1");
+            AddPiece(1, 'Y', "D1");
+
+            AddPiece(2, 't', "A5");
+            AddPiece(2, 'i', "B5");
+            AddPiece(2, 'x', "C5");
+            AddPiece(2, 'y', "D5");
+        }
+        
         public bool IsValidMove(Move move, int playerId)
         {
             if (move == null || move.X0 < 0 || move.Y0 < 0 || move.X0 >= W || move.Y0 >= H || move.X1 < 0 || move.Y1 < 0 || move.X1 >= W || move.Y1 >= H)
@@ -71,9 +103,9 @@ namespace Tixy
             var takenPiece = GetPieceAt(move.X1, move.Y1);
             if (takenPiece != null)
             {
-                _playerPieces.Remove(takenPiece);
+                PlayerPieces.Remove(takenPiece);
 
-                var otherPlayersPieces = _playerPieces.Where(pp => pp.OwnerId != playerId).ToList();
+                var otherPlayersPieces = PlayerPieces.Where(pp => pp.OwnerId != playerId).ToList();
                 if (!otherPlayersPieces.Any())
                 {
                     WinnerId = playerId;
@@ -87,7 +119,7 @@ namespace Tixy
             StoreMove(move);
         }
 
-        public (int x, int y) FromStrPos(string p)
+        public static (int x, int y) FromStrPos(string p)
         {
             int x = p[0] - 'A';
             int y = H - (p[1] - '1') - 1;
@@ -100,27 +132,6 @@ namespace Tixy
             _sb.Append((char)(H - m.Y0 + '0'));
             _sb.Append((char)(m.X1 + 'A'));
             _sb.Append((char)(H - m.Y1 + '0'));
-        }
-
-        public void Init()
-        {
-            _playerPieces.Clear();
-
-            void Add(int playerId, char type, string pos)
-            {
-                (int x, int y) = FromStrPos(pos);
-                _playerPieces.Add(new ActivePiece { OwnerId = playerId, X = x, Y = y, Piece = Pieces.PiecesTypes[type] });
-            }
-
-            Add(1, 'T', "A1");
-            Add(1, 'I', "B1");
-            Add(1, 'X', "C1");
-            Add(1, 'Y', "D1");
-
-            Add(2, 't', "A5");
-            Add(2, 'i', "B5");
-            Add(2, 'x', "C5");
-            Add(2, 'y', "D5");
         }
     }
 }

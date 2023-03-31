@@ -2,9 +2,9 @@
 {
     public static class BoardConsolePrint
     {
-        public static void Print(Board board)
+        public static void Print(IBoard board)
         {
-            var allPieces = board.GetActivePieces();
+            var allPieces = board.GetPlayerPieces();
             
             Console.Write("  ");
             for (int x = 0; x < Board.W; x++)

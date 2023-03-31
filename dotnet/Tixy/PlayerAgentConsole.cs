@@ -2,10 +2,10 @@
 {
     public class PlayerAgentConsole : IPlayerAgent
     {
-        private Board _board;
+        private IBoard _board;
         private int _playerId;
 
-        public void Reset(Board board, int playerId)
+        public void Reset(IBoard board, int playerId)
         {
             _board = board;
             _playerId = playerId;
@@ -49,15 +49,15 @@
             }
         }
 
-        private bool ParseMoveCommand(string cmd, out Move move)
+        private static bool ParseMoveCommand(string cmd, out Move move)
         {
             move = null;
 
             if (cmd == null || cmd?.Length < 5 || cmd?.Length > 5 || cmd?[2] != ' ')
                 return false;
 
-            var from = _board.FromStrPos(cmd[..2]);
-            var to = _board.FromStrPos(cmd[3..5]);
+            var from = Board.FromStrPos(cmd[..2]);
+            var to = Board.FromStrPos(cmd[3..5]);
 
             move = new Move
             {
