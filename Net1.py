@@ -36,7 +36,7 @@ class Net(nn.Module):
 def visualize_results(losses, accuracies, test_losses, loss_ax):
     loss_ax.clear()
     loss_ax.set_ylim(0, 3)
-    loss_ax.plot(losses, label='Loss', )
+    loss_ax.plot(losses, label='Loss', color='blue' )
     loss_ax.plot(accuracies, label='Test Loss', color='yellow')
     loss_ax.plot(test_losses, label='Loss', color='red')
     loss_ax.set_xlabel('Iteration')
@@ -76,7 +76,7 @@ if __name__ == "__main__":
     learning_rate = 0.001
     step_size = 100  # Decay the learning rate every x steps (or epochs)
     gamma = 0.8  # Decay factor
-    batch_size = 1000
+    batch_size = 10000
 
     model = Net(layer_size)
     # Replace the loss function with CrossEntropyLoss
@@ -136,6 +136,7 @@ for epoch in range(epochs):
     print(
         f"Epoch [{epoch+1}/{epochs}], Loss: {epoch_loss:.6f}, TestLoss: {test_loss:.6f}, Learning rate: {scheduler.get_last_lr()[0]:.6f}, Accuracy: {accuracy:.4f} ({correct_predictions}/{len(y_test)}), total_batches: {total_batches}")
 
+
 with torch.no_grad():
     model.eval()
     y_pred = model(x_test)
@@ -144,7 +145,7 @@ with torch.no_grad():
 print(f"Test loss: {test_loss:.6f}")
 
 # Save the model if desired
-# torch.save(model.state_dict(), 'model.pth')
+#torch.save(model.state_dict(), 'model.pth')
 
 plt.ioff()
 plt.show()
