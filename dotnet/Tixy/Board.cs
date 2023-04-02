@@ -11,7 +11,9 @@ namespace Tixy
         public int WinnerId { get; private set; }
         
         public List<ActivePiece> PlayerPieces { get; } = new();
-        
+
+        public List<BoardState> Moves { get; } = new();
+
         private readonly StringBuilder _sb = new (1000);
 
         public Board()
@@ -116,7 +118,7 @@ namespace Tixy
             movedPiece.X += move.Dx;
             movedPiece.Y += move.Dy;
 
-            StoreMove(move);
+            StoreMove(move, playerId);
         }
 
         public static (int x, int y) FromStrPos(string p)
@@ -126,8 +128,30 @@ namespace Tixy
             return (x, y);
         }
 
-        private void StoreMove(Move m)
+        Dictionary<(int, int), int> directionLookup = new Dictionary<(int, int), int>
         {
+            { (-1, -1), 5 },
+            { (0, -1), 4 },
+            { (1, -1), 3 },
+            { (1, 0), 2 },
+            { (1, 1), 1 },
+            { (0, 1), 0 },
+            { (-1, 1), 7 },
+            { (-1, 0), 6 }
+        };
+
+        private void StoreMove(Move m, int playerId)
+        {
+            var state = Util.ExportBoard(this, playerId);
+            int dx = m.Dx;
+            int dy = m.Dy;
+            int selectedDirectionPlaneIdx = directionLookup[(dx, dy)];
+
+            // Set a single 1 on the direction plane of the cell we move from.
+            state.SelectedMove[selectedDirectionPlaneIdx * m.Y0 * W + m.X0] = 1;
+
+            Moves.Add(state);
+
             _sb.Append((char)(m.X0 + 'A'));
             _sb.Append((char)(H - m.Y0 + '0'));
             _sb.Append((char)(m.X1 + 'A'));

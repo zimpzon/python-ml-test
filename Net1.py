@@ -5,82 +5,96 @@ import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
 from torch.optim.lr_scheduler import StepLR
-
+from torch.nn import functional as F
 from data_reader import read_board_states
 
 
-class Net(nn.Module):
-    def __init__(self, layer_size):
-        super(Net, self).__init__()
-        self.relu = nn.ReLU()
+class BoardGameModel(nn.Module):
+    def __init__(self):
+        super(BoardGameModel, self).__init__()
 
-        self.layer1 = nn.Linear(5 * 5 * 8, layer_size)
-        self.bn1 = nn.BatchNorm1d(layer_size)
-        self.layer2 = nn.Linear(layer_size, layer_size)
-        self.bn2 = nn.BatchNorm1d(layer_size)
-        self.layer3 = nn.Linear(layer_size, layer_size)
-        self.bn3 = nn.BatchNorm1d(layer_size)
-        self.layer4 = nn.Linear(layer_size, layer_size)
-        self.bn4 = nn.BatchNorm1d(layer_size)
-        self.layer5 = nn.Linear(layer_size, 8)  # estimated best direction
+        self.board_size = 5
+        self.channels = 9  # 8 pieces + 1 player turn
+        self.num_actions = 8 * self.board_size * self.board_size
+
+        # Input size: [batch_size, 9, 5, 5] (8 planes for different pieces + 1 plane for player turn)
+        # Output size is 8 channels/possible moves per cell on the board (8 * 5 * 5)
+        self.conv1 = nn.Conv2d(self.channels, 16, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv2d(16, 32, kernel_size=3, padding=1)
+        self.fc1 = nn.Linear(32 * self.board_size * self.board_size, 256)
+
+        # Policy head
+        self.policy_fc = nn.Linear(256, self.num_actions)
+
+        # Value head
+        self.value_fc1 = nn.Linear(256, 64)
+        self.value_fc2 = nn.Linear(64, 1)
 
     def forward(self, x):
-        x = self.relu(self.bn1(self.layer1(x)))
-        x = self.relu(self.bn2(self.layer2(x)))
-        x = self.relu(self.bn3(self.layer3(x)))
-        x = self.relu(self.bn4(self.layer4(x)))
-        x = self.layer5(x)
-        return x
+        x = torch.relu(self.conv1(x))
+        x = torch.relu(self.conv2(x))
+        x = x.view(x.size(0), -1)
+        x = torch.relu(self.fc1(x))
+
+        # Policy
+        policy = torch.softmax(self.policy_fc(x), dim=1)
+
+        # Value
+        value = torch.relu(self.value_fc1(x))
+        value = torch.tanh(self.value_fc2(value))
+
+        return policy, value
 
 
 def visualize_results(losses, accuracies, test_losses, loss_ax):
     loss_ax.clear()
     loss_ax.set_ylim(0, 3)
-    loss_ax.plot(losses, label='Loss', color='blue' )
+    loss_ax.plot(losses, label='Loss', color='blue')
     loss_ax.plot(accuracies, label='Test Loss', color='yellow')
     loss_ax.plot(test_losses, label='Loss', color='red')
     loss_ax.set_xlabel('Iteration')
     loss_ax.set_ylabel('Value')
     loss_ax.legend()
 
-    accuracy_ax.clear()
-    accuracy_ax.set_ylim(0, 1)
-    accuracy_ax.plot(accuracies, label='Accuracy')
-    accuracy_ax.set_xlabel('Iteration')
-    accuracy_ax.set_ylabel('Accuracy')
-    accuracy_ax.legend()
-
 
 if __name__ == "__main__":
     states = read_board_states('c:/temp/ml/gen1.json')
 
     all_states = list(map(lambda s: s.get('State'), states))
+    all_states = [np.array(array_data).reshape((9, 5, 5))
+                  for array_data in all_states]
+    all_states = np.stack(all_states, axis=0)
+
     # Get class labels instead of one-hot vectors
-    all_expected = list(map(lambda s: np.argmax(
-        s.get('DesiredDirections')), states))
+    expected_policies = list(map(lambda s: np.argmax(
+        s.get('SelectedDirection')), states))
+
+    expected_values = list(map(lambda s: np.argmax(
+        s.get('valueSelectedDirection')), states))
 
     # Split data into training and test sets
-    x_train, x_test, y_train, y_test = train_test_split(
-        all_states, all_expected, test_size=0.2, random_state=42)
+    x_train, x_test, y_train, y_test, z_train, z_test = train_test_split(
+        all_states, expected_policies, expected_values, test_size=0.2, random_state=42)
 
     # Convert training and test data to PyTorch tensors
     x_train = torch.tensor(x_train, dtype=torch.float32)
     x_test = torch.tensor(x_test, dtype=torch.float32)
-    # Change the data type to long
     y_train = torch.tensor(y_train, dtype=torch.long)
-    # Change the data type to long
     y_test = torch.tensor(y_test, dtype=torch.long)
+    z_train = torch.tensor(z_train, dtype=torch.long)
+    z_test = torch.tensor(z_test, dtype=torch.long)
 
-    layer_size = 50
     epochs = 1000
     learning_rate = 0.001
     step_size = 100  # Decay the learning rate every x steps (or epochs)
     gamma = 0.8  # Decay factor
-    batch_size = 10000
+    batch_size = 1000  # MUST BE DIVISOR OF SAMPLES
 
-    model = Net(layer_size)
-    # Replace the loss function with CrossEntropyLoss
-    criterion = nn.CrossEntropyLoss()
+    model = BoardGameModel()
+
+    policy_loss_fn = nn.CrossEntropyLoss()
+    value_loss_fn = nn.MSELoss()
+
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
     scheduler = StepLR(optimizer, step_size=step_size, gamma=gamma)
@@ -102,11 +116,19 @@ for epoch in range(epochs):
         optimizer.zero_grad()
         x_batch = x_train[i:i+batch_size]
         y_batch = y_train[i:i+batch_size]
-        outputs = model(x_batch)
-        loss = criterion(outputs, y_batch)
-        loss.backward()
+        z_batch = z_train[i:i+batch_size]
+
+        policy_output, value_output = model(x_batch)
+
+        policy_loss = policy_loss_fn(policy_output, y_batch)
+        value_loss = value_loss_fn(value_output, z_batch)
+
+        alpha = 0.5  # You can tune this weight based on the importance of each head during training
+        combined_loss = alpha * policy_loss + (1 - alpha) * value_loss
+        policy_loss.backward()
+
         optimizer.step()
-        epoch_loss += loss.item()
+        epoch_loss += policy_loss.item()
         batch_count += 1
         total_batches += 1
 
@@ -115,10 +137,15 @@ for epoch in range(epochs):
 
     with torch.no_grad():
         model.eval()
-        y_pred = model(x_test)
-        test_loss = criterion(y_pred, y_test).item()
+        y_pred, z_pred = model(x_test)
 
-    test_losses.append(test_loss)
+        policy_loss = policy_loss_fn(y_pred, y_test)
+        value_loss = value_loss_fn(z_pred, z_test)
+
+        alpha = 0.5  # You can tune this weight based on the importance of each head during training
+        combined_loss = alpha * policy_loss + (1 - alpha) * value_loss
+
+    test_losses.append(policy_loss.item())
 
     _, max_indices = torch.max(y_pred, dim=1)
 
@@ -134,18 +161,10 @@ for epoch in range(epochs):
     fig.canvas.flush_events()
 
     print(
-        f"Epoch [{epoch+1}/{epochs}], Loss: {epoch_loss:.6f}, TestLoss: {test_loss:.6f}, Learning rate: {scheduler.get_last_lr()[0]:.6f}, Accuracy: {accuracy:.4f} ({correct_predictions}/{len(y_test)}), total_batches: {total_batches}")
-
-
-with torch.no_grad():
-    model.eval()
-    y_pred = model(x_test)
-    test_loss = criterion(y_pred, y_test).item()
-
-print(f"Test loss: {test_loss:.6f}")
+        f"Epoch [{epoch+1}/{epochs}], Loss: {epoch_loss:.6f}, TestLoss: {combined_loss:.6f}, Learning rate: {scheduler.get_last_lr()[0]:.6f}, Accuracy: {accuracy:.4f} ({correct_predictions}/{len(y_test)}), total_batches: {total_batches}")
 
 # Save the model if desired
-#torch.save(model.state_dict(), 'model.pth')
+# torch.save(model.state_dict(), 'model.pth')
 
 plt.ioff()
 plt.show()

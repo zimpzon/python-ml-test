@@ -2,38 +2,42 @@
 {
     public static class Util
     {
-        public static BoardState ExportBoard(IBoard board)
+        // A plane is size 5 x 5. This is repeated 1 + 8 times.
+        public static BoardState ExportBoard(IBoard board, int playerIdHasTurn)
         {
             var result = new BoardState();
+            var state = result.State;
 
-            var pieces = board.GetPlayerPieces();
-            foreach(var piece in pieces)
+            int planeSize = Board.W * Board.H;
+            int idx = 0;
+
+            // Fill playerplane
+            for (int i = 0; i < planeSize; ++i)
             {
-                int layerIdx = "TIXYtixy".IndexOf(piece.Piece.Type);
-                int stateIdx = (piece.Y * Board.W) + piece.X + (layerIdx * Board.W * Board.H);
-                result.State[stateIdx] = 1;
+                state[idx] = playerIdHasTurn - 1; // Convert id to index: 1,2 to 0,1
+                idx++;
             }
-            
-            return result;
-        }
-        
-        public static void StateToBoard(IBoard board, BoardState state)
-        {
-            for (int y = 0; y < Board.H; ++y)
+
+            // Fill plane 1 - 8 for pieces
+            for (int pieceIdx = 0; pieceIdx < 8; ++pieceIdx)
             {
-                for (int x = 0; x < Board.W; ++x)
+                for (int y = 0; y < Board.H; ++y)
                 {
-                    for (int layer = 0; layer < 8; ++layer)
+                    for (int x = 0; x < Board.W; ++x)
                     {
-                        int stateIdx = (y * Board.W) + x + (layer * Board.W * Board.H);
-                        if (state.State[stateIdx] > 0)
+                        var piece = board.GetPieceAt(x, y);
+                        if (piece?.Piece?.TypeToIdx() == pieceIdx)
                         {
-                            char type = "TIXYtixy"[layer];
-                            board.AddPiece(1, type, x, y);
+                            state[idx] = 1;
                         }
+                        
+                        idx++;
                     }
                 }
             }
+
+            // Now we have filled 9 planes, each the size of the board.
+            return result;
         }
     }
 }
