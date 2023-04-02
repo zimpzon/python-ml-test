@@ -45,7 +45,6 @@ class BoardGameModel(nn.Module):
 
         return policy, value
 
-
 def visualize_results(losses, accuracies, test_losses, loss_ax):
     loss_ax.clear()
     loss_ax.set_ylim(0, 3)
@@ -70,7 +69,8 @@ if __name__ == "__main__":
         s.get('SelectedDirection')), states))
 
     expected_values = list(map(lambda s: np.argmax(
-        s.get('valueSelectedDirection')), states))
+        s.get('ValueSelectedDirection')), states))
+    expected_values = np.array(expected_values).reshape((-1, 1))
 
     # Split data into training and test sets
     x_train, x_test, y_train, y_test, z_train, z_test = train_test_split(
@@ -81,8 +81,8 @@ if __name__ == "__main__":
     x_test = torch.tensor(x_test, dtype=torch.float32)
     y_train = torch.tensor(y_train, dtype=torch.long)
     y_test = torch.tensor(y_test, dtype=torch.long)
-    z_train = torch.tensor(z_train, dtype=torch.long)
-    z_test = torch.tensor(z_test, dtype=torch.long)
+    z_train = torch.tensor(z_train, dtype=torch.float32)
+    z_test = torch.tensor(z_test, dtype=torch.float32)
 
     epochs = 1000
     learning_rate = 0.001
@@ -112,16 +112,21 @@ total_batches = 0
 for epoch in range(epochs):
     epoch_loss = 0
     batch_count = 0
+    model.train()
     for i in range(0, len(x_train), batch_size):
         optimizer.zero_grad()
+
+        # batch_size * 9 * 5 * 5
         x_batch = x_train[i:i+batch_size]
+
+        # batch_size * 200 for policy, batch_size * 1 for value
+        y_pred, z_pred = model(x_batch)
+
         y_batch = y_train[i:i+batch_size]
         z_batch = z_train[i:i+batch_size]
 
-        policy_output, value_output = model(x_batch)
-
-        policy_loss = policy_loss_fn(policy_output, y_batch)
-        value_loss = value_loss_fn(value_output, z_batch)
+        policy_loss = policy_loss_fn(y_pred, y_batch)
+        value_loss = value_loss_fn(z_pred, z_batch)
 
         alpha = 0.5  # You can tune this weight based on the importance of each head during training
         combined_loss = alpha * policy_loss + (1 - alpha) * value_loss
@@ -161,8 +166,10 @@ for epoch in range(epochs):
     fig.canvas.flush_events()
 
     print(
-        f"Epoch [{epoch+1}/{epochs}], Loss: {epoch_loss:.6f}, TestLoss: {combined_loss:.6f}, Learning rate: {scheduler.get_last_lr()[0]:.6f}, Accuracy: {accuracy:.4f} ({correct_predictions}/{len(y_test)}), total_batches: {total_batches}")
+        f"Epoch [{epoch+1}/{epochs}], Loss: {epoch_loss:.8f}, TestLoss: {policy_loss:.8f}, Learning rate: {scheduler.get_last_lr()[0]:.6f}, total_batches: {total_batches}")
 
+    # print(
+    #     f"Epoch [{epoch+1}/{epochs}], Loss: {epoch_loss:.8f}, TestLoss: {combined_loss:.8f}, Learning rate: {scheduler.get_last_lr()[0]:.6f}, Accuracy: {accuracy:.6f} ({correct_predictions}/{len(y_test)}), total_batches: {total_batches}")
 # Save the model if desired
 # torch.save(model.state_dict(), 'model.pth')
 

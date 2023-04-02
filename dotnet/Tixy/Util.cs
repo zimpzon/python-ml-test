@@ -6,15 +6,16 @@
         public static BoardState ExportBoard(IBoard board, int playerIdHasTurn)
         {
             var result = new BoardState();
+            result.PlayerIdx = playerIdHasTurn - 1;
             var state = result.State;
 
             int planeSize = Board.W * Board.H;
             int idx = 0;
 
-            // Fill playerplane
+            // Fill player plane
             for (int i = 0; i < planeSize; ++i)
             {
-                state[idx] = playerIdHasTurn - 1; // Convert id to index: 1,2 to 0,1
+                state[idx] = result.PlayerIdx;
                 idx++;
             }
 

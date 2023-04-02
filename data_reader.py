@@ -3,6 +3,7 @@ import json
 
 class BoardState:
     def __init__(self):
+        self.PlayerIdx = 0
         self.State = [0.0] * (5 * 5 * 8)
         self.Selectedmove = [0.0] * 8 * 5 * 5
         self.Value = 0

@@ -1,4 +1,6 @@
 ﻿using System.Diagnostics;
+using System.Text;
+using System.Text.Json;
 using Tixy;
 
 var player1 = new PlayerAgentRandom();
@@ -11,9 +13,10 @@ var sw = Stopwatch.StartNew();
 long nextPrint = 0;
 var board = new Board();
 
-int turns = 0;
+List<BoardState> moves = new ();
 
-while (true)
+int steps = 100;
+for (int i = 0; i < steps; ++i)
 {
     int turnsThisGame = 0;
     
@@ -31,7 +34,6 @@ while (true)
 
         var movePlayer1 = player1.GetMove();
         board.Move(movePlayer1, 1);
-        turnsThisGame++;
 
         if (board.IsGameOver)
             break;
@@ -49,18 +51,21 @@ while (true)
     else
         win2++;
     
+    moves.AddRange(board.Moves);
+
     long ms = sw.ElapsedMilliseconds;
-    if (ms > nextPrint)
+    if (ms > nextPrint || i == steps - 1)
     {
         int totalGames = win1 + win2;
         double perSec = totalGames / (ms / 1000.0);
         double win1Percentage = (double)win1 / totalGames * 100;
         double win2Percentage = (double)win2 / totalGames * 100;
 
-        Console.WriteLine($"Total: {totalGames}, Player 1: {win1Percentage:0.00}%, Player 2: {win2Percentage:0.00}%, {perSec:0.00} games/s, avgTurns: {turns / (double)totalGames:0.0}");
+        Console.WriteLine($"Total: {totalGames}, Player 1: {win1Percentage:0.00}%, Player 2: {win2Percentage:0.00}%, {perSec:0.00} games/s, avgTurns: {(double)moves.Count / (i + 1):0.0}");
 
         nextPrint = ms + 1000;
     }
-    
-    turns += turnsThisGame;
 }
+
+string json = JsonSerializer.Serialize(moves, new JsonSerializerOptions { WriteIndented = false });
+File.WriteAllText("c:\\temp\\ml\\gen1.json", json);

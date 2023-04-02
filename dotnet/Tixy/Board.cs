@@ -13,6 +13,8 @@ namespace Tixy
         public List<ActivePiece> PlayerPieces { get; } = new();
 
         public List<BoardState> Moves { get; } = new();
+        public List<(int x, int y)> DebugPos { get; } = new();
+        public List<int> DebugDiretionIdx { get; } = new();
 
         private readonly StringBuilder _sb = new (1000);
 
@@ -25,6 +27,7 @@ namespace Tixy
         {
             IsGameOver = false;
             WinnerId = 0;
+            Moves.Clear();
             _sb.Clear();
             Init();
         }
@@ -103,21 +106,34 @@ namespace Tixy
 
             var movedPiece = GetPieceAt(move.X0, move.Y0, playerId);
             var takenPiece = GetPieceAt(move.X1, move.Y1);
-            if (takenPiece != null)
-            {
-                PlayerPieces.Remove(takenPiece);
 
-                var otherPlayersPieces = PlayerPieces.Where(pp => pp.OwnerId != playerId).ToList();
-                if (!otherPlayersPieces.Any())
-                {
-                    WinnerId = playerId;
-                    IsGameOver = true;
-                }
-            }
-            
             movedPiece.X += move.Dx;
             movedPiece.Y += move.Dy;
 
+            if (takenPiece != null)
+                PlayerPieces.Remove(takenPiece);
+
+            int winLineIdx = playerId == 1 ? 0 : Board.H - 1;
+            bool winByLine = movedPiece.Y == winLineIdx;
+
+            var otherPlayersPieces = PlayerPieces.Where(pp => pp.OwnerId != playerId).ToList();
+            bool winByElimination = !otherPlayersPieces.Any();
+            if (winByLine || winByElimination)
+            {
+                //Console.WriteLine($"elim: {winByElimination}, line: {winByLine}");
+                WinnerId = playerId;
+                int loserId = IdOtherPlayer(WinnerId);
+                IsGameOver = true;
+
+                var winnerMoves = Moves.Where(m => m.PlayerIdx == WinnerId - 1).ToList();
+                foreach (var winnerMove in winnerMoves)
+                    winnerMove.Value = 1;
+
+                var loserMoves = Moves.Where(m => m.PlayerIdx == loserId - 1).ToList();
+                foreach (var loserMove in loserMoves)
+                    loserMove.Value = -1;
+            }
+            
             StoreMove(move, playerId);
         }
 
@@ -151,7 +167,9 @@ namespace Tixy
             state.SelectedMove[selectedDirectionPlaneIdx * m.Y0 * W + m.X0] = 1;
 
             Moves.Add(state);
-
+            DebugDiretionIdx.Add(selectedDirectionPlaneIdx);
+            DebugPos.Add((m.X0, m.Y0));
+            
             _sb.Append((char)(m.X0 + 'A'));
             _sb.Append((char)(H - m.Y0 + '0'));
             _sb.Append((char)(m.X1 + 'A'));
