@@ -1,4 +1,13 @@
 ﻿
+
+ONNX dotnet player with theta(?). Must be able to yse different models for the two players.
+Play game, run value iteration (ask a friend).
+Export training data. Both raw and how pytorch will use it.
+
+Run training on pytorch. Export model and see if it improved.
+
+
+
 Store games so they can be replayed
 
 NB NB NB: In aplha0 policy and value is ONE network. State value is just another output param.
