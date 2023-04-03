@@ -1,9 +1,8 @@
 ﻿using System.Diagnostics;
-using System.Text;
 using System.Text.Json;
 using Tixy;
 
-var player1 = new PlayerAgentRandom();
+var player1 = new PlayerAgentOnnx();
 var player2 = new PlayerAgentRandom();
 
 int win1 = 0;
@@ -15,7 +14,7 @@ var board = new Board();
 
 List<BoardState> moves = new ();
 
-int steps = 100;
+int steps = 10000;
 for (int i = 0; i < steps; ++i)
 {
     int turnsThisGame = 0;
@@ -38,12 +37,20 @@ for (int i = 0; i < steps; ++i)
         if (board.IsGameOver)
             break;
 
+        //Console.Clear();
+        //BoardConsolePrint.Print(board);
+        //Console.ReadLine();
+        
         var movePlayer2 = player2.GetMove();
         board.Move(movePlayer2, 2);
         turnsThisGame++;
         
         if (board.IsGameOver)
             break;
+
+        //Console.Clear();
+        //BoardConsolePrint.Print(board);
+        //Console.ReadLine();
     }
 
     if (board.WinnerId == 1)

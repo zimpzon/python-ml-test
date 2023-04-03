@@ -100,6 +100,7 @@ def train_model(device, model, epochs, batch_size, coords_tensor, pixels_tensor,
         for _ in range(coords_tensor.shape[0] // batch_size):
             random_indices = np.random.choice(
                 coords_tensor.shape[0], size=batch_size, replace=False)
+
             x_batch = coords_tensor[random_indices].to(device)
             y_batch = pixels_tensor[random_indices].to(device)
 

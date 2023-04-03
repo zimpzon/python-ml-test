@@ -2,7 +2,7 @@
 {
     public static class BoardConsolePrint
     {
-        public static void Print(IBoard board)
+        public static void Print(IBoard board, float[] moveScores = null)
         {
             var allPieces = board.GetPlayerPieces();
             
@@ -17,8 +17,22 @@
                 Console.Write(' ');
                 for (int x = 0; x < Board.W; x++)
                 {
+                    char c = '.';
                     var piece = allPieces.FirstOrDefault(p => p.X == x && p.Y == y);
-                    Console.Write(piece?.Piece?.Type ?? '.');
+                    if (piece == null)
+                    {
+                        if (moveScores != null)
+                        {
+                            var idx = y * Board.W + x;
+                            var score = moveScores[idx];
+                            c = score >= 0 ? '+' : '-';
+                        }
+                    }
+                    else
+                    {
+                        c = piece?.Piece?.Type ?? '?';
+                    }
+                    Console.Write(c);
                 }
                 Console.WriteLine();
             }

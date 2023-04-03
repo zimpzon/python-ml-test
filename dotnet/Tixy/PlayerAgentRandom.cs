@@ -4,7 +4,7 @@
     {
         private IBoard _board;
         private int _playerId;
-        private readonly Random _rnd = new ();
+        private readonly Random _rnd = new (1);
 
         public void Reset(IBoard board, int playerId)
         {

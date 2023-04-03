@@ -6,7 +6,8 @@ namespace Tixy
     {
         public static int W { get; } = 5;
         public static int H { get; } = 5;
-        
+        public static int Cells { get; } = W * H;
+
         public bool IsGameOver { get; private set; }
         public int WinnerId { get; private set; }
         
@@ -78,7 +79,32 @@ namespace Tixy
             AddPiece(2, 'x', "C5");
             AddPiece(2, 'y', "D5");
         }
-        
+
+        public bool IsValidMove(int x, int y, int dir, int playerId)
+        {
+            (int dx, int dy) = directionLookup.First(pair => pair.Value == dir).Key;
+
+            int x1 = x + dx;
+            int y1 = y + dy;
+
+            if (x < 0 || y < 0 || x >= W || y >= H || x1 < 0 || y1 < 0 || x1 >= W || y1 >= H)
+                return false;
+
+            var playerPiece = GetPieceAt(x, y, playerId);
+            if (playerPiece == null)
+                return false;
+
+            var directionIsValid = playerPiece.Piece.ValidDirections.Any(vm => vm.dx == dx && vm.dy == dy);
+            if (!directionIsValid)
+                return false;
+
+            var destinationPiece = GetPieceAt(x1, y1);
+            if (destinationPiece?.OwnerId == playerId)
+                return false;
+
+            return true;
+        }
+
         public bool IsValidMove(Move move, int playerId)
         {
             if (move == null || move.X0 < 0 || move.Y0 < 0 || move.X0 >= W || move.Y0 >= H || move.X1 < 0 || move.Y1 < 0 || move.X1 >= W || move.Y1 >= H)
@@ -99,6 +125,11 @@ namespace Tixy
             return true;
         }
 
+        public (int dx, int dy) DeltasFromDirection(int direction)
+        {
+            return directionLookup.First(pair => pair.Value == direction).Key;
+        }
+
         public void Move(Move move, int playerId)
         {
             if (!IsValidMove(move, playerId))
@@ -107,13 +138,15 @@ namespace Tixy
             var movedPiece = GetPieceAt(move.X0, move.Y0, playerId);
             var takenPiece = GetPieceAt(move.X1, move.Y1);
 
+            StoreState(move, playerId);
+
             movedPiece.X += move.Dx;
             movedPiece.Y += move.Dy;
 
             if (takenPiece != null)
                 PlayerPieces.Remove(takenPiece);
 
-            int winLineIdx = playerId == 1 ? 0 : Board.H - 1;
+            int winLineIdx = playerId == 1 ? 0 : H - 1;
             bool winByLine = movedPiece.Y == winLineIdx;
 
             var otherPlayersPieces = PlayerPieces.Where(pp => pp.OwnerId != playerId).ToList();
@@ -133,8 +166,6 @@ namespace Tixy
                 foreach (var loserMove in loserMoves)
                     loserMove.Value = -1;
             }
-            
-            StoreMove(move, playerId);
         }
 
         public static (int x, int y) FromStrPos(string p)
@@ -156,7 +187,7 @@ namespace Tixy
             { (-1, 0), 6 }
         };
 
-        private void StoreMove(Move m, int playerId)
+        private void StoreState(Move m, int playerId)
         {
             var state = Util.ExportBoard(this, playerId);
             int dx = m.Dx;
@@ -164,7 +195,8 @@ namespace Tixy
             int selectedDirectionPlaneIdx = directionLookup[(dx, dy)];
 
             // Set a single 1 on the direction plane of the cell we move from.
-            state.SelectedMove[selectedDirectionPlaneIdx * m.Y0 * W + m.X0] = 1;
+            int moveDstIdx = (selectedDirectionPlaneIdx * W * H) + m.Y1 * W + m.X1;
+            state.SelectedMove[moveDstIdx] = 1;
 
             Moves.Add(state);
             DebugDiretionIdx.Add(selectedDirectionPlaneIdx);
