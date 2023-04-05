@@ -165,6 +165,8 @@ namespace Tixy
                 var loserMoves = Moves.Where(m => m.PlayerIdx == loserId - 1).ToList();
                 foreach (var loserMove in loserMoves)
                     loserMove.Value = -1;
+
+                Moves.RemoveAll(m => m.Value < 0);
             }
         }
 
@@ -175,16 +177,16 @@ namespace Tixy
             return (x, y);
         }
 
-        Dictionary<(int, int), int> directionLookup = new Dictionary<(int, int), int>
+        Dictionary<(int dx, int dy), int> directionLookup = new Dictionary<(int dx, int dy), int>
         {
-            { (-1, -1), 5 },
-            { (0, -1), 4 },
-            { (1, -1), 3 },
-            { (1, 0), 2 },
-            { (1, 1), 1 },
-            { (0, 1), 0 },
-            { (-1, 1), 7 },
-            { (-1, 0), 6 }
+            { (-1, -1), 0 },
+            { (0, -1), 1 },
+            { (1, -1), 2 },
+            { (1, 0), 3 },
+            { (1, 1), 4 },
+            { (0, 1), 5 },
+            { (-1, 1), 6 },
+            { (-1, 0), 7 }
         };
 
         private void StoreState(Move m, int playerId)
@@ -192,14 +194,14 @@ namespace Tixy
             var state = Util.ExportBoard(this, playerId);
             int dx = m.Dx;
             int dy = m.Dy;
-            int selectedDirectionPlaneIdx = directionLookup[(dx, dy)];
+            int selectedDirection = directionLookup[(dx, dy)];
 
-            // Set a single 1 on the direction plane of the cell we move from.
-            int moveDstIdx = (selectedDirectionPlaneIdx * W * H) + m.Y1 * W + m.X1;
-            state.SelectedMove[moveDstIdx] = 1;
+            int moveDstIdx = m.Y1 * W + m.X1;
+            state.SelectedMove[moveDstIdx] = selectedDirection;
+            state.SelectedMoveIdx = moveDstIdx;
 
             Moves.Add(state);
-            DebugDiretionIdx.Add(selectedDirectionPlaneIdx);
+            DebugDiretionIdx.Add(selectedDirection);
             DebugPos.Add((m.X0, m.Y0));
             
             _sb.Append((char)(m.X0 + 'A'));

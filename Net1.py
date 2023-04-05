@@ -1,5 +1,4 @@
 import numpy as np
-import onnx
 from sklearn.model_selection import train_test_split
 import torch
 import torch.onnx
@@ -11,25 +10,23 @@ from torch.nn import functional as F
 from data_reader import read_board_states
 
 
-class BoardGameModel(nn.Module):
+class CustomConvNet(nn.Module):
     def __init__(self):
-        super(BoardGameModel, self).__init__()
+        super(CustomConvNet, self).__init__()
 
-        self.input_size = 225
-        self.output_size = 200
-
-        self.fc1 = nn.Linear(self.input_size, 1024)
-        self.fc2 = nn.Linear(1024, 512)
-        self.fc3 = nn.Linear(512, 256)
-        self.fc4 = nn.Linear(256, self.output_size)
+        # Define the convolutional layers
+        self.conv1 = nn.Conv2d(9, 64, kernel_size=3, padding=1)
+        self.bn1 = nn.BatchNorm2d(64)
+        self.conv2 = nn.Conv2d(64, 64, kernel_size=3, padding=1)
+        self.bn2 = nn.BatchNorm2d(64)
+        self.conv3 = nn.Conv2d(64, 8, kernel_size=1, padding=0)
+        self.bn3 = nn.BatchNorm2d(8)
 
     def forward(self, x):
-        x = torch.relu(self.fc1(x))
-        x = torch.relu(self.fc2(x))
-        x = torch.relu(self.fc3(x))
-        x = self.fc4(x)
-        return torch.softmax(x, dim=1)
-
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = F.relu(self.bn2(self.conv2(x)))
+        x = self.bn3(self.conv3(x))
+        return x
 
 def visualize_results(losses, accuracies, test_losses, loss_ax):
     loss_ax.clear()
@@ -43,15 +40,16 @@ def visualize_results(losses, accuracies, test_losses, loss_ax):
 
 
 if __name__ == "__main__":
-    states = read_board_states('c:/temp/ml/gen1.json')
+    states = read_board_states('c:/temp/ml/gen-0.json')
 
     all_states = list(map(lambda s: s.get('State'), states))
-    # all_states = [np.array(array_data).reshape((9 * 5 * 5))
-    #               for array_data in all_states]
-    all_states = np.stack(all_states, axis=0)
+    all_states = [np.array(array_data).reshape((9, 5, 5))
+                   for array_data in all_states]
 
     # Get class labels instead of one-hot vectors
     expected_move = list(map(lambda s: s.get('SelectedMove'), states))
+    expected_move = [np.array(array_data).reshape((5, 5))
+                   for array_data in expected_move]
 
     # Split data into training and test sets
     x_train, x_test, y_train, y_test = train_test_split(
@@ -60,16 +58,16 @@ if __name__ == "__main__":
     # Convert training and test data to PyTorch tensors
     x_train = torch.tensor(x_train, dtype=torch.float32)
     x_test = torch.tensor(x_test, dtype=torch.float32)
-    y_train = torch.tensor(y_train, dtype=torch.float32)
-    y_test = torch.tensor(y_test, dtype=torch.float32)
+    y_train = torch.tensor(y_train, dtype=torch.long)
+    y_test = torch.tensor(y_test, dtype=torch.long)
 
-    epochs = 10
+    epochs = 1000
     learning_rate = 0.001
     step_size = 100  # Decay the learning rate every x steps (or epochs)
     gamma = 0.8  # Decay factor
-    batch_size = 1000  # MUST BE DIVISOR OF SAMPLES
+    batch_size = 1000
 
-    model = BoardGameModel()
+    model = CustomConvNet()
 
     loss_fn = nn.CrossEntropyLoss()
 
@@ -92,19 +90,23 @@ for epoch in range(epochs):
     epoch_loss = 0
     batch_count = 0
     model.train()
-    for i in range(0, len(x_train), batch_size):
+    rang = range(0, len(x_train), batch_size)
+    for i in rang:
+        step = min(len(x_train) - i, rang.step)
         optimizer.zero_grad()
 
-        x_batch = x_train[i:i+batch_size]
-        y_batch = y_train[i:i+batch_size]
+        x_batch = x_train[i:i+step]
+        y_batch = y_train[i:i+step]
 
         random_indices = np.random.choice(
-            len(x_batch), size=batch_size, replace=True)
+            len(x_batch), size=step, replace=False)
 
         x_batch = x_batch[random_indices]
         y_batch = y_batch[random_indices]
 
         outputs = model(x_batch)
+
+        # CrossEntropyLoss expects (batch, class_count, height, width) = scores + (batch, height, width) = value 0-7 for the class
         loss = loss_fn(outputs, y_batch)
         loss.backward()
         optimizer.step()
@@ -118,19 +120,19 @@ for epoch in range(epochs):
 
     with torch.no_grad():
         model.eval()
-        outputs = model(x_test)
 
-        loss = loss_fn(outputs, y_test)
+    outputs = model(x_test)
+
+    loss = loss_fn(outputs, y_test)
 
     test_losses.append(loss.item())
 
-    # outputs is a len(y_test) sized list of 200 elements.
-    # get a list of the indexes of all max values in the arrays.
-    _, max_output_indices = torch.max(outputs, dim=1)
-    _, max_expected_indices = torch.max(y_test, dim=1)
+    predicted_classes = torch.argmax(outputs, dim=1)
 
-    correct_predictions = (max_output_indices ==
-                           max_expected_indices).sum().item()
+    compare = predicted_classes == y_test
+    sum = compare.sum()
+    correct_predictions = sum.item()
+
     accuracy = correct_predictions / len(y_test)
     accuracies.append(accuracy)
 
@@ -143,24 +145,11 @@ for epoch in range(epochs):
     print(
         f"Epoch [{epoch+1}/{epochs}], Loss: {epoch_loss:.6f}, TestLoss: {loss:.6f}, Learning rate: {scheduler.get_last_lr()[0]:.6f}, Accuracy: {accuracy:.4f} ({correct_predictions}/{len(y_test)}), total_batches: {total_batches}")
 
-    # print(
-    #     f"Epoch [{epoch+1}/{epochs}], Loss: {epoch_loss:.8f}, TestLoss: {combined_loss:.8f}, Learning rate: {scheduler.get_last_lr()[0]:.6f}, Accuracy: {accuracy:.6f} ({correct_predictions}/{len(y_test)}), total_batches: {total_batches}")
-# Save the model if desired
+    dummy_input = x_train[0:1]
+    path = 'c:/temp/ml/tixy.onnx'
 
-dummy_input = x_train[0:1]
-path = 'c:/temp/ml/tixy.onnx'
-
-torch.onnx.export(model, dummy_input, path,
-                  input_names=["input"], output_names=["output"], export_params=True)
-
-model = onnx.load('c:\\temp\\ml\\tixy.onnx')
-
-# Check the model's validity
-onnx.checker.check_model(model)
-print("The model is valid.")
-
-
-torch.save(model.state_dict(), path)
+    torch.onnx.export(model, dummy_input, path,
+                    input_names=["input"], output_names=["output"], export_params=True)
 
 plt.ioff()
 plt.show()

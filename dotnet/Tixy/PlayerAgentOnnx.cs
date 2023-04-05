@@ -7,13 +7,10 @@ namespace Tixy
     {
         private IBoard _board;
         private int _playerId;
-        private readonly Random _rnd = new (42);
         private readonly InferenceSession _onnxSession;
 
         public PlayerAgentOnnx()
         {
-            var inputArray = new float[1, 225];
-
             // Load the ONNX model and perform inference
             string onnxModelPath = "c:\\temp\\ml\\tixy.onnx";
             _onnxSession = new InferenceSession(onnxModelPath);
@@ -33,13 +30,23 @@ namespace Tixy
             for (int i = 0; i < inputArray.Length; ++i)
                 inputArray[0, i] = boardState.State[i];
 
-            var inputs = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor("input", inputArray.ToTensor()) };
+            var inputTensor = inputArray.ToTensor();
+            var newShape = new int[] { 1, 9, 5, 5 };
+            var reshapedTensor = inputTensor.Reshape(newShape);
+
+            var inputs = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor("input", reshapedTensor) };
             using var results = _onnxSession.Run(inputs);
             var output = results.First(item => item.Name == "output").AsEnumerable<float>().ToArray();
 
+            // Algo alternative:
+            //   repeat
+            //     find max value and convert to move
+            //       if invalid move set to float.min and start over
+            //       if valie move do move and stop
+
             ActivePiece bestPiece = null;
             int bestDirection = -1;
-            float maxScore = -1;
+            float maxScore = float.MinValue;
 
             for (int y = 0; y < Board.H; ++y)
             {
@@ -56,13 +63,13 @@ namespace Tixy
                         var myPiece = _board.GetPieceAt(xp, yp, _playerId);
                         if (myPiece == null)
                         {
-                            output[idx] = -1;
+                            output[idx] = float.MinValue;
                             continue;
                         }
 
                         if (!_board.IsValidMove(xp, yp, planeId, _playerId))
                         {
-                            output[idx] = -1;
+                            output[idx] = float.MinValue;
                             continue;
                         }
 
@@ -76,9 +83,12 @@ namespace Tixy
                 }
             }
 
-            int validCount = output.Count(o => o >= -0.9999);
+            int validCount = output.Count(o => o > float.MinValue);
             if (validCount == 0)
+            {
+                BoardConsolePrint.Print(_board, "no moves");
                 throw new ArgumentException($"I give up, no valid moves");
+            }
 
             if (!_board.IsValidMove(bestPiece.X, bestPiece.Y, bestDirection, _playerId))
                 throw new ArgumentException($"Not a valid move, should not be possible, should have been caught in check above");

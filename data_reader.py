@@ -6,6 +6,7 @@ class BoardState:
         self.PlayerIdx = 0
         self.State
         self.SelectedMove
+        self.SelectedMoveIdx
         self.Value = 0
 
 
