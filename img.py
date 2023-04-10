@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from torch.optim.lr_scheduler import StepLR
 
 # Load a single image
-image_path = 'c:\\temp\\img\\dino.jpg'
+image_path = 'c:\\temp\\img\\dog2.jpg'
 
 image = Image.open(image_path)
 image = image.resize((128, 64))
@@ -88,7 +88,7 @@ else:
     print("Model is running on CPU.")
 
 criterion = nn.MSELoss()
-optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
+optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=1e-4)
 scheduler = StepLR(optimizer, step_size=1000, gamma=0.9)
 
 plt.ion()

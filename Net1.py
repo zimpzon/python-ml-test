@@ -127,20 +127,25 @@ for epoch in range(epochs):
 
     test_losses.append(loss.item())
 
-    predicted_classes = torch.argmax(outputs, dim=1)
+    # predicted_classes = torch.argmax(outputs, dim=1)
+    # # get the index of the highest scoring move along dim=1
+    # pred_indices = torch.argmax(output_tensor, dim=1)
 
-    compare = predicted_classes == y_test
-    sum = compare.sum()
-    correct_predictions = sum.item()
+    # compare = predicted_classes == y_test
+    # sum = compare.sum()
+    # correct_predictions = sum.item()
 
-    accuracy = correct_predictions / len(y_test)
-    accuracies.append(accuracy)
+    # accuracy = correct_predictions / len(y_test)
+    # accuracies.append(accuracy)
 
     scheduler.step()
 
     visualize_results(losses, accuracies, test_losses, loss_ax)
     fig.canvas.draw()
     fig.canvas.flush_events()
+
+    correct_predictions = 0
+    accuracy = 0
 
     print(
         f"Epoch [{epoch+1}/{epochs}], Loss: {epoch_loss:.6f}, TestLoss: {loss:.6f}, Learning rate: {scheduler.get_last_lr()[0]:.6f}, Accuracy: {accuracy:.4f} ({correct_predictions}/{len(y_test)}), total_batches: {total_batches}")

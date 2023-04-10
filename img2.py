@@ -170,7 +170,7 @@ def visualize_results(losses, model, coords_tensor, loss_ax, image_ax):
 
 
 if __name__ == "__main__":
-    image_path = 'c:\\temp\\img\\capture.jpg'
+    image_path = 'c:\\temp\\img\\dog2.jpg'
     image = Image.open(image_path)
     width, height = image.size
     image = image.resize((256, 256))
