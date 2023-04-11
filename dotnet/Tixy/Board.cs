@@ -155,18 +155,48 @@ namespace Tixy
             {
                 //Console.WriteLine($"elim: {winByElimination}, line: {winByLine}");
                 WinnerId = playerId;
-                int loserId = IdOtherPlayer(WinnerId);
                 IsGameOver = true;
 
-                var winnerMoves = Moves.Where(m => m.PlayerIdx == WinnerId - 1).ToList();
-                foreach (var winnerMove in winnerMoves)
-                    winnerMove.Value = 1;
+                PostProcessMoves();
+            }
+        }
 
-                var loserMoves = Moves.Where(m => m.PlayerIdx == loserId - 1).ToList();
-                foreach (var loserMove in loserMoves)
-                    loserMove.Value = -1;
+        private void PostProcessMoves()
+        {
+            int loserId = IdOtherPlayer(WinnerId);
 
-                Moves.RemoveAll(m => m.Value < 0);
+            // Discount earlier moves, then normalize (per episode, could also have been per batch).
+            var winnerMoves = Moves.Where(m => m.PlayerIdx == WinnerId - 1).ToList();
+            var loserMoves = Moves.Where(m => m.PlayerIdx == loserId - 1).ToList();
+            DiscountAndNormalize(winnerMoves, 1);
+            DiscountAndNormalize(loserMoves, -1);
+        }
+
+        private static double StdDev(List<BoardState> moves, double mean)
+        {
+            double variance = moves.Select(x => Math.Pow(x.Value - mean, 2)).Average();
+            return Math.Sqrt(variance);
+        }
+
+        private void DiscountAndNormalize(List<BoardState> moves, double reward)
+        {
+            const double DiscountFactor = 0.99;
+            double v = reward;
+            for (int i = moves.Count - 1; i >= 0; --i)
+            {
+                var m = moves[i];
+                m.Value = v;
+                v *= DiscountFactor;
+            }
+
+            double mean = moves.Average(m => m.Value);
+            double stdDev = StdDev(moves, mean);
+
+            for (int i = 0; i < moves.Count; ++i)
+            {
+                var m = moves[i];
+                m.Value -= mean;
+                m.Value /= stdDev;
             }
         }
 
@@ -196,7 +226,7 @@ namespace Tixy
             int dy = m.Dy;
             int selectedDirection = directionLookup[(dx, dy)];
 
-            int moveDstIdx = m.Y1 * W + m.X1;
+            int moveDstIdx = (selectedDirection * W * H) + m.Y1* W + m.X1; // plane + pos
             state.SelectedMove[moveDstIdx] = selectedDirection;
             state.SelectedMoveIdx = moveDstIdx;
 

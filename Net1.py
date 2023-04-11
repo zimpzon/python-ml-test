@@ -10,23 +10,23 @@ from torch.nn import functional as F
 from data_reader import read_board_states
 
 
-class CustomConvNet(nn.Module):
+class BoardModel(nn.Module):
     def __init__(self):
-        super(CustomConvNet, self).__init__()
-
-        # Define the convolutional layers
+        super(BoardModel, self).__init__()
         self.conv1 = nn.Conv2d(9, 64, kernel_size=3, padding=1)
-        self.bn1 = nn.BatchNorm2d(64)
-        self.conv2 = nn.Conv2d(64, 64, kernel_size=3, padding=1)
-        self.bn2 = nn.BatchNorm2d(64)
-        self.conv3 = nn.Conv2d(64, 8, kernel_size=1, padding=0)
-        self.bn3 = nn.BatchNorm2d(8)
+        self.relu1 = nn.ReLU()
+        self.conv2 = nn.Conv2d(64, 128, kernel_size=3, padding=1)
+        self.relu2 = nn.ReLU()
+        self.move = nn.Linear(128, 200)
+        self.value = nn.Linear(128, 1)
 
     def forward(self, x):
-        x = F.relu(self.bn1(self.conv1(x)))
-        x = F.relu(self.bn2(self.conv2(x)))
-        x = self.bn3(self.conv3(x))
-        return x
+        x = self.relu1(self.conv1(x))
+        x = self.relu2(self.conv2(x))
+        move = self.move(x)
+        value = self.value(x).view(-1, 1)
+        return move, value
+
 
 def visualize_results(losses, accuracies, test_losses, loss_ax):
     loss_ax.clear()
@@ -44,22 +44,27 @@ if __name__ == "__main__":
 
     all_states = list(map(lambda s: s.get('State'), states))
     all_states = [np.array(array_data).reshape((9, 5, 5))
-                   for array_data in all_states]
+                  for array_data in all_states]
 
-    # Get class labels instead of one-hot vectors
     expected_move = list(map(lambda s: s.get('SelectedMove'), states))
-    expected_move = [np.array(array_data).reshape((5, 5))
-                   for array_data in expected_move]
+    expected_move = [np.array(array_data).reshape((8 * 5 * 5))
+                     for array_data in expected_move]
+
+    expected_value = list(map(lambda s: s.get('Value'), states))
+    expected_value = [np.array(array_data).reshape((1))
+                      for array_data in expected_value]
 
     # Split data into training and test sets
-    x_train, x_test, y_train, y_test = train_test_split(
-        all_states, expected_move, test_size=0.2, random_state=42)
+    x_train, x_test, y_train, y_test, z_train, z_test = train_test_split(
+        all_states, expected_move, expected_value, test_size=0.2, random_state=42)
 
     # Convert training and test data to PyTorch tensors
     x_train = torch.tensor(x_train, dtype=torch.float32)
     x_test = torch.tensor(x_test, dtype=torch.float32)
     y_train = torch.tensor(y_train, dtype=torch.long)
     y_test = torch.tensor(y_test, dtype=torch.long)
+    z_train = torch.tensor(z_train, dtype=torch.float32)
+    z_test = torch.tensor(z_test, dtype=torch.float32)
 
     epochs = 1000
     learning_rate = 0.001
@@ -67,13 +72,13 @@ if __name__ == "__main__":
     gamma = 0.8  # Decay factor
     batch_size = 1000
 
-    model = CustomConvNet()
-
-    loss_fn = nn.CrossEntropyLoss()
+    model = BoardModel()
 
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
     scheduler = StepLR(optimizer, step_size=step_size, gamma=gamma)
+
+    loss_fn = nn.MSELoss()
 
     losses = []
     test_losses = []
@@ -84,6 +89,7 @@ if __name__ == "__main__":
 
     print(f'Training samples: {len(x_train)}')
     print(f'Test samples: {len(x_test)}')
+
 
 total_batches = 0
 for epoch in range(epochs):
@@ -97,17 +103,19 @@ for epoch in range(epochs):
 
         x_batch = x_train[i:i+step]
         y_batch = y_train[i:i+step]
+        z_batch = z_train[i:i+step]
 
         random_indices = np.random.choice(
             len(x_batch), size=step, replace=False)
 
         x_batch = x_batch[random_indices]
         y_batch = y_batch[random_indices]
+        z_batch = z_batch[random_indices]
 
         outputs = model(x_batch)
 
-        # CrossEntropyLoss expects (batch, class_count, height, width) = scores + (batch, height, width) = value 0-7 for the class
         loss = loss_fn(outputs, y_batch)
+
         loss.backward()
         optimizer.step()
 
@@ -150,11 +158,13 @@ for epoch in range(epochs):
     print(
         f"Epoch [{epoch+1}/{epochs}], Loss: {epoch_loss:.6f}, TestLoss: {loss:.6f}, Learning rate: {scheduler.get_last_lr()[0]:.6f}, Accuracy: {accuracy:.4f} ({correct_predictions}/{len(y_test)}), total_batches: {total_batches}")
 
-    dummy_input = x_train[0:1]
-    path = 'c:/temp/ml/tixy.onnx'
 
-    torch.onnx.export(model, dummy_input, path,
-                    input_names=["input"], output_names=["output"], export_params=True)
+# dummy input in correct format is required to save model, that's just how it works.
+dummy_input = x_train[0:1]
+path = 'c:/temp/ml/tixy.onnx'
+
+torch.onnx.export(model, dummy_input, path,
+                  input_names=["input"], output_names=["output"], export_params=True)
 
 plt.ioff()
 plt.show()

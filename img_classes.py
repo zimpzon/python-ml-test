@@ -8,33 +8,21 @@ import matplotlib.pyplot as plt
 from torchvision.transforms import ToTensor
 from torch.optim.lr_scheduler import StepLR
 
+# NEXT: more categories. Just 2 may not be enough to tell the diff between cross entropy and MSE (indeed, MSE seems to do better right now, if overfitting is considered good)
+
 
 class Net(nn.Module):
     def __init__(self, layer_size):
         super(Net, self).__init__()
-        self.layer1 = nn.Linear(2, layer_size)
-        self.bn1 = nn.BatchNorm1d(layer_size)
-        self.layer2 = nn.Linear(layer_size, layer_size)
-        self.bn2 = nn.BatchNorm1d(layer_size)
-        self.layer3 = nn.Linear(layer_size, layer_size)
-        self.bn3 = nn.BatchNorm1d(layer_size)
-        self.layer4 = nn.Linear(layer_size, layer_size)
-        self.bn4 = nn.BatchNorm1d(layer_size)
-        self.layer5 = nn.Linear(layer_size, layer_size)
-        self.bn5 = nn.BatchNorm1d(layer_size)
-        self.layer6 = nn.Linear(layer_size, layer_size)
-        self.bn6 = nn.BatchNorm1d(layer_size)
-        self.layer7 = nn.Linear(layer_size, 3)
         self.relu = nn.ReLU()
+        self.input = nn.Linear(2, layer_size)
+        self.fc1 = nn.Linear(layer_size, layer_size)
+        self.fc2 = nn.Linear(layer_size, 2)
 
     def forward(self, x):
-        x = self.relu(self.bn1(self.layer1(x)))
-        x = self.relu(self.bn2(self.layer2(x)))
-        x = self.relu(self.bn3(self.layer3(x)))
-        x = self.relu(self.bn4(self.layer4(x)))
-        x = self.relu(self.bn5(self.layer5(x)))
-        x = self.relu(self.bn6(self.layer6(x)))
-        x = self.layer7(x)
+        x = self.relu(self.input(x))
+        x = self.relu(self.fc1(x))
+        x = self.fc2(x)
         return x
 
 
@@ -80,11 +68,18 @@ def create_dataset(image):
     coords = np.stack(
         [x.ravel() / width - 0.5, y.ravel() / height - 0.5], axis=1)
     pixels = np.array(image).reshape(-1, 3) / 255
-    return coords, pixels
+
+    labels = np.zeros((pixels.shape[0], 2))
+
+    g_component = pixels[:, 1]  # G component is at index 1
+    labels[g_component > 0.5] = [0, 1]
+    labels[g_component <= 0.5] = [1, 0]
+
+    return coords, labels
 
 
-def train_model(device, model, epochs, batch_size, coords_tensor, pixels_tensor, fig, loss_ax, image_ax):
-    criterion = nn.MSELoss()
+def train_model(device, model, epochs, batch_size, coords_tensor, labels_tensor, fig, loss_ax, image_ax):
+    criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     scheduler = StepLR(optimizer, step_size=step_size, gamma=gamma)
     losses = []
@@ -102,7 +97,7 @@ def train_model(device, model, epochs, batch_size, coords_tensor, pixels_tensor,
                 coords_tensor.shape[0], size=batch_size, replace=False)
 
             x_batch = coords_tensor[random_indices].to(device)
-            y_batch = pixels_tensor[random_indices].to(device)
+            y_batch = labels_tensor[random_indices].to(device)
 
             optimizer.zero_grad()
             start = time.time()
@@ -121,7 +116,7 @@ def train_model(device, model, epochs, batch_size, coords_tensor, pixels_tensor,
                 start = time.time()
                 last_visualization_time = current_time
                 visualize_results(
-                    losses, model, coords_tensor, loss_ax, image_ax)
+                    losses, model, coords_tensor, labels_tensor, loss_ax, image_ax)
                 fig.canvas.draw()
                 fig.canvas.flush_events()
                 t_viz = time.time() - start
@@ -142,7 +137,7 @@ def train_model(device, model, epochs, batch_size, coords_tensor, pixels_tensor,
     return losses
 
 
-def visualize_results(losses, model, coords_tensor, loss_ax, image_ax):
+def visualize_results(losses, model, coords_tensor, labels_tensor, loss_ax, image_ax):
     loss_ax.clear()
     loss_ax.set_ylim(0.0, 0.005)
     loss_ax.plot(losses, label='Loss')
@@ -154,13 +149,21 @@ def visualize_results(losses, model, coords_tensor, loss_ax, image_ax):
 
     with torch.no_grad():
         model.eval()
-        pixels_pred_tensor = model(coords_tensor)
+        labels_pred_tensor = model(coords_tensor)
 
-        pixels_pred = pixels_pred_tensor.cpu().numpy() * 255
+        labels_pred = labels_pred_tensor.cpu().numpy()
+
+        indices = np.argmin(labels_pred, axis=1)
+
+        pix = np.zeros(width * height * 3)
+        for i in range(len(labels_pred)):
+            pix[i * 3 + 0] = 255 * indices[i]
+            pix[i * 3 + 2] = 255 * labels_tensor[i, 0]
+
         image_pred = Image.fromarray(
-            np.uint8(np.clip(pixels_pred.reshape(height, width, 3), 0, 255)))
+            np.uint8(np.clip(pix.reshape(width, height, 3), 0, 255)))
 
-        pixels_pred_tensor.detach()
+        labels_pred_tensor.detach()
 
     image_ax.clear()
     image_ax.imshow(image_pred)
@@ -173,7 +176,7 @@ if __name__ == "__main__":
     image_path = 'c:\\temp\\img\\red.jpg'
     image = Image.open(image_path)
     width, height = image.size
-    image = image.resize((256, 256))
+    image = image.resize((128, 128))
     width, height = image.size
 
     fig, (loss_ax, image_ax) = plt.subplots(1, 2, figsize=(10, 5))
@@ -183,9 +186,9 @@ if __name__ == "__main__":
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
 
-    coords, pixels = create_dataset(image)
+    coords, labels = create_dataset(image)
     coords_tensor = torch.tensor(coords, dtype=torch.float32).to(device)
-    pixels_tensor = torch.tensor(pixels, dtype=torch.float32).to(device)
+    labels_tensor = torch.tensor(labels, dtype=torch.float32).to(device)
 
     model = Net(layer_size).to(device)
 
@@ -197,4 +200,4 @@ if __name__ == "__main__":
     print(
         f"Training model with layer size: {layer_size}, batch size: {batch_size}, learning rate: {learning_rate}")
     losses = train_model(device, model, epochs, batch_size,
-                         coords_tensor, pixels_tensor, fig, loss_ax, image_ax)
+                         coords_tensor, labels_tensor, fig, loss_ax, image_ax)

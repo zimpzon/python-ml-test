@@ -2,7 +2,7 @@
 using System.Text.Json;
 using Tixy;
 
-var player1 = new PlayerAgentOnnx();
+var player1 = new PlayerAgentRandom();
 var player2 = new PlayerAgentRandom();
 
 var sw = Stopwatch.StartNew();
@@ -68,6 +68,6 @@ for (int k = 0; k < 100; ++k)
         }
     }
 
-    //string json = JsonSerializer.Serialize(moves, new JsonSerializerOptions { WriteIndented = false });
-    //File.WriteAllText($"c:\\temp\\ml\\gen-{k}.json", json);
+    string json = JsonSerializer.Serialize(moves, new JsonSerializerOptions { WriteIndented = false });
+    File.WriteAllText($"c:\\temp\\ml\\gen-{k}.json", json);
 }
