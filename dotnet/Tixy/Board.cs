@@ -6,14 +6,14 @@ namespace Tixy
     {
         public static int W { get; } = 5;
         public static int H { get; } = 5;
-        public static int Cells { get; } = W * H;
+        public static int CellCount { get; } = W * H;
 
         public bool IsGameOver { get; private set; }
         public int WinnerId { get; private set; }
         
         public List<ActivePiece> PlayerPieces { get; } = new();
 
-        public List<BoardState> Moves { get; } = new();
+        public List<BoardState> Moves { get; private set; } = new();
         public List<(int x, int y)> DebugPos { get; } = new();
         public List<int> DebugDiretionIdx { get; } = new();
 
@@ -69,15 +69,15 @@ namespace Tixy
         {
             PlayerPieces.Clear();
 
-            AddPiece(1, 'T', "A1");
-            AddPiece(1, 'I', "B1");
-            AddPiece(1, 'X', "C1");
-            AddPiece(1, 'Y', "D1");
+            //AddPiece(1, 'T', "A1");
+            AddPiece(1, 't', "B1");
+            //AddPiece(1, 'X', "C1");
+            //AddPiece(1, 'Y', "D1");
 
-            AddPiece(2, 't', "A5");
-            AddPiece(2, 'i', "B5");
-            AddPiece(2, 'x', "C5");
-            AddPiece(2, 'y', "D5");
+            //AddPiece(2, 't', "A5");
+            AddPiece(2, 'T', "D5");
+            //AddPiece(2, 'x', "C5");
+            //AddPiece(2, 'y', "D5");
         }
 
         public bool IsValidMove(int x, int y, int dir, int playerId)
@@ -146,11 +146,22 @@ namespace Tixy
             if (takenPiece != null)
                 PlayerPieces.Remove(takenPiece);
 
-            int winLineIdx = playerId == 1 ? 0 : H - 1;
+            int winLineIdx = playerId == 1 ? H - 1 : 0;
             bool winByLine = movedPiece.Y == winLineIdx;
 
             var otherPlayersPieces = PlayerPieces.Where(pp => pp.OwnerId != playerId).ToList();
             bool winByElimination = !otherPlayersPieces.Any();
+
+            if (Moves.Count > 100)
+            {
+                var rnd = new Random();
+                WinnerId = rnd.NextDouble() > 0.5 ? 1 : 2;
+                IsGameOver = true;
+                 Console.WriteLine($"Too many turns ({Moves.Count}), winner determined randomly: player {WinnerId}");
+
+                PostProcessMoves();
+            }
+
             if (winByLine || winByElimination)
             {
                 //Console.WriteLine($"elim: {winByElimination}, line: {winByLine}");
@@ -170,6 +181,8 @@ namespace Tixy
             var loserMoves = Moves.Where(m => m.PlayerIdx == loserId - 1).ToList();
             DiscountAndNormalize(winnerMoves, 1);
             DiscountAndNormalize(loserMoves, -1);
+
+            Moves = new List<BoardState>(winnerMoves);
         }
 
         private static double StdDev(List<BoardState> moves, double mean)
@@ -203,7 +216,7 @@ namespace Tixy
         public static (int x, int y) FromStrPos(string p)
         {
             int x = p[0] - 'A';
-            int y = H - (p[1] - '1') - 1;
+            int y = p[1] - '1';
             return (x, y);
         }
 
@@ -226,8 +239,8 @@ namespace Tixy
             int dy = m.Dy;
             int selectedDirection = directionLookup[(dx, dy)];
 
-            int moveDstIdx = (selectedDirection * W * H) + m.Y1* W + m.X1; // plane + pos
-            state.SelectedMove[moveDstIdx] = selectedDirection;
+            int moveDstIdx = (selectedDirection * W * H) + m.Y1 * W + m.X1; // plane + pos
+            state.SelectedMove[moveDstIdx] = 1;
             state.SelectedMoveIdx = moveDstIdx;
 
             Moves.Add(state);

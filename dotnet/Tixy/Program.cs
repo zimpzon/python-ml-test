@@ -9,14 +9,22 @@ var sw = Stopwatch.StartNew();
 long nextPrint = 0;
 var board = new Board();
 
+// PARAM
+bool watch = false;
+bool writeTrainingData = true;
+int steps = 10000;
+
+Console.WriteLine($"writeTrainingData = {writeTrainingData}");
+
 for (int k = 0; k < 100; ++k)
 {
     int win1 = 0;
     int win2 = 0;
     List<BoardState> moves = new();
-    bool watch = false;
-    int steps = 1000;
 
+    // NB NB NB NB
+    // * Currently player with 1's in the player plane always wins.
+    // * only winner moves exported
     for (int i = 0; i < steps; ++i)
     {
         int turnsThisGame = 0;
@@ -62,12 +70,15 @@ for (int k = 0; k < 100; ++k)
             double win1Percentage = (double)win1 / totalGames * 100;
             double win2Percentage = (double)win2 / totalGames * 100;
 
-            Console.WriteLine($"k: {k},Total: {totalGames}, Player 1: {win1Percentage:0.00}%, Player 2: {win2Percentage:0.00}%, {perSec:0.00} games/s, avgTurns: {(double)moves.Count / (i + 1):0.0}");
+            Console.WriteLine($"k: {k},Total: {totalGames}, Player 1 ({player1.Name}): {win1Percentage:0.00}%, Player 2 ({player2.Name}): {win2Percentage:0.00}%, {perSec:0.00} games/s, avgTurns: {(double)moves.Count / (i + 1):0.0}");
 
             nextPrint = ms + 1000;
         }
     }
 
-    string json = JsonSerializer.Serialize(moves, new JsonSerializerOptions { WriteIndented = false });
-    File.WriteAllText($"c:\\temp\\ml\\gen-{k}.json", json);
+    if (writeTrainingData)
+    {
+        string json = JsonSerializer.Serialize(moves, new JsonSerializerOptions { WriteIndented = false });
+        File.WriteAllText($"c:\\temp\\ml\\gen-{k}.json", json);
+    }
 }

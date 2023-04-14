@@ -4,7 +4,9 @@
     {
         private IBoard _board;
         private int _playerId;
-        private readonly Random _rnd = new (1);
+        private readonly Random _rnd = new ();
+
+        public string Name => "Random";
 
         public void Reset(IBoard board, int playerId)
         {
@@ -38,7 +40,7 @@
 
                 if (!_board.IsValidMove(move, _playerId))
                 {
-                    if (cnt++ > 100)
+                    if (cnt++ > 1000)
                         throw new InvalidOperationException("Failed to find a valid move after 100 attempts.");
 
                     continue;

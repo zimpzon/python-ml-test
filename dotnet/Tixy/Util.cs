@@ -15,7 +15,7 @@
             // Fill player plane
             for (int i = 0; i < planeSize; ++i)
             {
-                state[idx] = result.PlayerIdx;
+                state[idx] = result.PlayerIdx == 0 ? 0 : 1;
                 idx++;
             }
 

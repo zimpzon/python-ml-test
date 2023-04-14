@@ -16,7 +16,7 @@
             Console.WriteLine();
             for (int y = 0; y < Board.H; y++)
             {
-                Console.Write((char)(Board.H - y + '0'));
+                Console.Write((char)(y + '0' + 1));
                 Console.Write(' ');
                 for (int x = 0; x < Board.W; x++)
                 {

@@ -5,6 +5,8 @@
         private IBoard _board;
         private int _playerId;
 
+        public string Name => "Console";
+
         public void Reset(IBoard board, int playerId)
         {
             _board = board;

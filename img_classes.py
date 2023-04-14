@@ -17,12 +17,34 @@ class Net(nn.Module):
         self.relu = nn.ReLU()
         self.input = nn.Linear(2, layer_size)
         self.fc1 = nn.Linear(layer_size, layer_size)
-        self.fc2 = nn.Linear(layer_size, 2)
+        self.bn1 = nn.BatchNorm1d(layer_size)
+        self.fc2 = nn.Linear(layer_size, layer_size)
+        self.bn2 = nn.BatchNorm1d(layer_size)
+        self.fc3 = nn.Linear(layer_size, layer_size)
+        self.bn3 = nn.BatchNorm1d(layer_size)
+        self.fc4 = nn.Linear(layer_size, layer_size)
+        self.bn4 = nn.BatchNorm1d(layer_size)
+        self.fc5 = nn.Linear(layer_size, layer_size)
+        self.bn5 = nn.BatchNorm1d(layer_size)
+        self.fc6 = nn.Linear(layer_size, layer_size)
+        self.bn6 = nn.BatchNorm1d(layer_size)
+        self.fc7 = nn.Linear(layer_size, layer_size)
+        self.bn7 = nn.BatchNorm1d(layer_size)
+        self.fc8 = nn.Linear(layer_size, layer_size)
+        self.bn8 = nn.BatchNorm1d(layer_size)
+        self.fc_out = nn.Linear(layer_size, 4)
 
     def forward(self, x):
         x = self.relu(self.input(x))
-        x = self.relu(self.fc1(x))
-        x = self.fc2(x)
+        x = self.relu(self.bn1(self.fc1(x)))
+        x = self.relu(self.bn2(self.fc2(x)))
+        x = self.relu(self.bn3(self.fc3(x)))
+        x = self.relu(self.bn4(self.fc4(x)))
+        x = self.relu(self.bn5(self.fc5(x)))
+        # x = self.relu(self.bn6(self.fc6(x)))
+        # x = self.relu(self.bn7(self.fc7(x)))
+        # x = self.relu(self.bn8(self.fc8(x)))
+        x = self.fc_out(x)
         return x
 
 
@@ -54,10 +76,10 @@ class MinValueStepLR(StepLR):
         return constrained_lr_list
 
 
-layer_size = 256
+layer_size = 128
 epochs = 500000
-batch_size = 200
-learning_rate = 0.001
+batch_size = 50
+learning_rate = 0.01
 step_size = 100  # Decay the learning rate every x steps (or epochs)
 gamma = 0.8  # Decay factor
 
@@ -69,11 +91,16 @@ def create_dataset(image):
         [x.ravel() / width - 0.5, y.ravel() / height - 0.5], axis=1)
     pixels = np.array(image).reshape(-1, 3) / 255
 
-    labels = np.zeros((pixels.shape[0], 2))
+    labels = np.zeros((pixels.shape[0], 4))
 
-    g_component = pixels[:, 1]  # G component is at index 1
-    labels[g_component > 0.5] = [0, 1]
-    labels[g_component <= 0.5] = [1, 0]
+    r_component = pixels[:, 0]
+    g_component = pixels[:, 1]
+    b_component = pixels[:, 2]
+
+    labels[True] = [1, 0, 0, 0]
+    labels[r_component > 0.5] = [0, 1, 0, 0]
+    labels[g_component > 0.5] = [0, 0, 1, 0]
+    labels[b_component > 0.5] = [0, 0, 0, 1]
 
     return coords, labels
 
@@ -128,7 +155,6 @@ def train_model(device, model, epochs, batch_size, coords_tensor, labels_tensor,
 
         print(
             f"Epoch [{epoch+1}/{epochs}], Loss: {epoch_loss:.6f}, Learning rate: {scheduler.get_last_lr()[0]:.6f}, forwardSec: {t_forward:.3f}, backSec: {t_backwards:.3f}, vizSec: {t_viz:.3f}")
-
         t_forward = 0
         t_backwards = 0
 
@@ -137,9 +163,16 @@ def train_model(device, model, epochs, batch_size, coords_tensor, labels_tensor,
     return losses
 
 
+ylim = 0.1
+
+
 def visualize_results(losses, model, coords_tensor, labels_tensor, loss_ax, image_ax):
+    global ylim
+    if len(losses) > 10:
+        ylim = losses[10]
+
     loss_ax.clear()
-    loss_ax.set_ylim(0.0, 0.005)
+    loss_ax.set_ylim(0.0, ylim)
     loss_ax.plot(losses, label='Loss')
     loss_ax.plot(moving_average(losses, window_size=10),
                  label='Smoothed loss', color='y')
@@ -153,12 +186,12 @@ def visualize_results(losses, model, coords_tensor, labels_tensor, loss_ax, imag
 
         labels_pred = labels_pred_tensor.cpu().numpy()
 
-        indices = np.argmin(labels_pred, axis=1)
+        indices = np.argmax(labels_pred, axis=1)
 
         pix = np.zeros(width * height * 3)
         for i in range(len(labels_pred)):
-            pix[i * 3 + 0] = 255 * indices[i]
-            pix[i * 3 + 2] = 255 * labels_tensor[i, 0]
+            if indices[i] != 0:
+                pix[i * 3 + (indices[i] - 1)] = 200
 
         image_pred = Image.fromarray(
             np.uint8(np.clip(pix.reshape(width, height, 3), 0, 255)))
@@ -173,7 +206,7 @@ def visualize_results(losses, model, coords_tensor, labels_tensor, loss_ax, imag
 
 
 if __name__ == "__main__":
-    image_path = 'c:\\temp\\img\\red.jpg'
+    image_path = 'c:\\temp\\img\\classes.png'
     image = Image.open(image_path)
     width, height = image.size
     image = image.resize((128, 128))
