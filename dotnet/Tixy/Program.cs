@@ -11,7 +11,7 @@ var board = new Board();
 
 // PARAM
 bool watch = false;
-bool writeTrainingData = true;
+bool writeTrainingData = false;
 int steps = 10000;
 
 Console.WriteLine($"writeTrainingData = {writeTrainingData}");
@@ -24,7 +24,6 @@ for (int k = 0; k < 100; ++k)
 
     // NB NB NB NB
     // * Currently player with 1's in the player plane always wins.
-    // * only winner moves exported
     for (int i = 0; i < steps; ++i)
     {
         int turnsThisGame = 0;

@@ -15,7 +15,7 @@ class BoardModel(nn.Module):
     def __init__(self):
         super(BoardModel, self).__init__()
 
-        layer_size = 1024
+        layer_size = 256
 
         self.relu = nn.ReLU()
 
@@ -38,6 +38,7 @@ class BoardModel(nn.Module):
         self.bn5 = nn.BatchNorm1d(layer_size)
 
         self.out = nn.Linear(layer_size, 5 * 5 * 8)
+        self.value = nn.Linear(layer_size, 1)
 
     def forward(self, x):
         x = self.relu(self.bn0(self.layer0(x)))
@@ -46,8 +47,9 @@ class BoardModel(nn.Module):
         # x = self.relu(self.bn3(self.layer3(x)))
         # x = self.relu(self.bn4(self.layer4(x)))
         # x = self.relu(self.bn5(self.layer5(x)))
-        x = self.out(x)
-        return x
+        out = self.out(x)
+        value = self.value(x)
+        return out, value
 
 
 ylim = 0.1
@@ -96,7 +98,7 @@ if __name__ == "__main__":
     z_test = torch.tensor(z_test, dtype=torch.float32)
 
     epochs = 1000
-    learning_rate = 0.001
+    learning_rate = 0.01
     step_size = 100  # decay the learning rate every x steps (or epochs)
     gamma = 0.9  # lr decay factor
     batch_size = 1000
@@ -105,7 +107,8 @@ if __name__ == "__main__":
 
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     scheduler = StepLR(optimizer, step_size=step_size, gamma=gamma)
-    criterion = nn.CrossEntropyLoss()
+    criterion_policy = nn.CrossEntropyLoss()
+    criterion_value = nn.MSELoss()
 
     losses = []
     test_losses = []
@@ -149,8 +152,11 @@ for epoch in range(epochs):
         y_batch = y_batch[random_indices]
         z_batch = z_batch[random_indices]
 
-        outputs = model(x_batch)
-        loss = criterion(outputs, y_batch)
+        outputs, value = model(x_batch)
+        loss_p = criterion_policy(outputs, y_batch)
+        loss_v = criterion_value(outputs, z_batch)
+
+        loss = loss_p + loss_v
 
         loss.backward()
         optimizer.step()
@@ -165,17 +171,26 @@ for epoch in range(epochs):
     with torch.no_grad():
         model.eval()
 
-    outputs = model(x_test)
+    outputs, value = model(x_test)
 
-    loss = criterion(outputs, y_test)
+    loss = criterion_value(outputs, z_test)
 
     test_losses.append(loss.item())
 
     predicted_classes = torch.argmax(outputs, dim=1)
+    predicted_layers = predicted_classes // (5 * 5)
+
+    desired_predictions = torch.argmax(y_test, dim=1)
+    desired_layers = desired_predictions // (5 * 5)
+
     correct_predictions = (predicted_classes ==
-                           torch.argmax(y_test, dim=1)).sum().item()
+                           desired_predictions).sum().item()
+    correct_layers = (predicted_layers == desired_layers).sum().item()
+
     accuracy = correct_predictions / len(y_test)
     accuracies.append(accuracy)
+
+    layer_accuracy = correct_layers / len(y_test)
 
     scheduler.step()
 
@@ -184,7 +199,7 @@ for epoch in range(epochs):
     fig.canvas.flush_events()
 
     print(
-        f"Epoch [{epoch+1}/{epochs}], Loss: {epoch_loss:.6f}, TestLoss: {loss:.6f}, Learning rate: {scheduler.get_last_lr()[0]:.6f}, Accuracy: {accuracy:.4f} ({correct_predictions}/{len(y_test)}), total_batches: {total_batches}")
+        f"Epoch [{epoch+1}/{epochs}], Loss: {epoch_loss:.6f}, TestLoss: {loss:.6f}, Learning rate: {scheduler.get_last_lr()[0]:.6f}, Accuracy: {accuracy:.4f} ({correct_predictions}/{len(y_test)}), correct_layers: {layer_accuracy:.4f} ({correct_layers}/{len(y_test)})")
 
 
 # dummy input in correct format is required to save model, that's just how it works.

@@ -181,8 +181,6 @@ namespace Tixy
             var loserMoves = Moves.Where(m => m.PlayerIdx == loserId - 1).ToList();
             DiscountAndNormalize(winnerMoves, 1);
             DiscountAndNormalize(loserMoves, -1);
-
-            Moves = new List<BoardState>(winnerMoves);
         }
 
         private static double StdDev(List<BoardState> moves, double mean)
