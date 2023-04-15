@@ -2,8 +2,16 @@
 using System.Text.Json;
 using Tixy;
 
-var player1 = new PlayerAgentRandom();
-var player2 = new PlayerAgentRandom();
+ExportAnalyzer.Run();
+
+bool export = true;
+bool player2IsAi = false;
+
+IPlayerAgent player1 = export ? new PlayerAgentRandom() : new PlayerAgentOnnx();
+IPlayerAgent player2 = player2IsAi ? new PlayerAgentOnnx() : new PlayerAgentRandom();
+
+player1 = new PlayerAgentOnnx();
+//player2 = new PlayerAgentOnnx();
 
 var sw = Stopwatch.StartNew();
 long nextPrint = 0;
@@ -11,8 +19,8 @@ var board = new Board();
 
 // PARAM
 bool watch = false;
-bool writeTrainingData = false;
-int steps = 10000;
+bool writeTrainingData = export;
+int steps = 1000;
 
 Console.WriteLine($"writeTrainingData = {writeTrainingData}");
 

@@ -15,7 +15,7 @@ class BoardModel(nn.Module):
     def __init__(self):
         super(BoardModel, self).__init__()
 
-        layer_size = 256
+        layer_size = 200
 
         self.relu = nn.ReLU()
 
@@ -58,7 +58,7 @@ ylim = 0.1
 def visualize_results(losses, accuracies, test_losses, loss_ax):
     global ylim
     if len(losses) > 5:
-        ylim = losses[5]
+        ylim = max(losses[5], test_losses[5])
 
     loss_ax.clear()
     loss_ax.set_ylim(0, ylim)
@@ -101,7 +101,7 @@ if __name__ == "__main__":
     learning_rate = 0.01
     step_size = 100  # decay the learning rate every x steps (or epochs)
     gamma = 0.9  # lr decay factor
-    batch_size = 1000
+    batch_size = 100
 
     model = BoardModel()
 
@@ -125,9 +125,8 @@ stop = False
 
 total_batches = 0
 for epoch in range(epochs):
-    if stop == True:
-        print('Stopping training')
-        break
+    epoch_policy_loss = 0
+    epoch_value_loss = 0
 
     epoch_loss = 0
     batch_count = 0
@@ -153,10 +152,13 @@ for epoch in range(epochs):
         z_batch = z_batch[random_indices]
 
         outputs, value = model(x_batch)
+
         loss_p = criterion_policy(outputs, y_batch)
         loss_v = criterion_value(outputs, z_batch)
-
         loss = loss_p + loss_v
+
+        epoch_policy_loss += loss_p.item()
+        epoch_value_loss += loss_v.item()
 
         loss.backward()
         optimizer.step()
@@ -165,15 +167,24 @@ for epoch in range(epochs):
         batch_count += 1
         total_batches += 1
 
+    if stop == True:
+        print('Stopping training')
+        break
+
     epoch_loss /= batch_count
     losses.append(epoch_loss)
+
+    epoch_policy_loss /= batch_count
+    epoch_value_loss /= batch_count
 
     with torch.no_grad():
         model.eval()
 
     outputs, value = model(x_test)
+    loss_p = criterion_policy(outputs, y_test)
+    loss_v = criterion_value(value, z_test)
 
-    loss = criterion_value(outputs, z_test)
+    loss = loss_p + loss_v
 
     test_losses.append(loss.item())
 
@@ -199,7 +210,7 @@ for epoch in range(epochs):
     fig.canvas.flush_events()
 
     print(
-        f"Epoch [{epoch+1}/{epochs}], Loss: {epoch_loss:.6f}, TestLoss: {loss:.6f}, Learning rate: {scheduler.get_last_lr()[0]:.6f}, Accuracy: {accuracy:.4f} ({correct_predictions}/{len(y_test)}), correct_layers: {layer_accuracy:.4f} ({correct_layers}/{len(y_test)})")
+        f"Epoch [{epoch+1}/{epochs}], Loss: {epoch_loss:.6f}, tLoss: {loss:.6f}, polLoss: {epoch_policy_loss:.6f}, valLoss: {epoch_value_loss:.6f}  LR: {scheduler.get_last_lr()[0]:.6f}, Acc: {accuracy:.4f} ({correct_predictions}/{len(y_test)}), accLayers: {layer_accuracy:.4f} ({correct_layers}/{len(y_test)})")
 
 
 # dummy input in correct format is required to save model, that's just how it works.

@@ -35,14 +35,14 @@ namespace Tixy
             var inputTensor = inputArray.ToTensor();
             //var newShape = new int[] { 1, 9, 5, 5 };
             //var reshapedTensor = inputTensor.Reshape(newShape);
-
+            
             var inputs = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor("input", inputTensor) };
             using var results = _onnxSession.Run(inputs);
             var output = results.First(item => item.Name == "output").AsEnumerable<float>().ToArray();
 
             var rawScores = AiUtil.GetPiecesRawScores(_board, output, _playerId);
-            var move = AiUtil.GetHighestScoringMove(_board, rawScores, _playerId);
-            
+
+            var move = AiUtil.SelectMoveByProbability(_board, rawScores, _playerId, 1.0);
             return move;
         }
     }

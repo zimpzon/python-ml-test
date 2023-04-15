@@ -15,7 +15,7 @@ namespace Tixy
 
         public List<BoardState> Moves { get; private set; } = new();
         public List<(int x, int y)> DebugPos { get; } = new();
-        public List<int> DebugDiretionIdx { get; } = new();
+        public List<long> DebugDiretionIdx { get; } = new();
 
         private readonly StringBuilder _sb = new (1000);
 
@@ -70,12 +70,12 @@ namespace Tixy
             PlayerPieces.Clear();
 
             //AddPiece(1, 'T', "A1");
-            AddPiece(1, 't', "B1");
+            AddPiece(1, 'i', "B1");
             //AddPiece(1, 'X', "C1");
             //AddPiece(1, 'Y', "D1");
 
             //AddPiece(2, 't', "A5");
-            AddPiece(2, 'T', "D5");
+            AddPiece(2, 'I', "D5");
             //AddPiece(2, 'x', "C5");
             //AddPiece(2, 'y', "D5");
         }
@@ -157,9 +157,10 @@ namespace Tixy
                 var rnd = new Random();
                 WinnerId = rnd.NextDouble() > 0.5 ? 1 : 2;
                 IsGameOver = true;
-                 Console.WriteLine($"Too many turns ({Moves.Count}), winner determined randomly: player {WinnerId}");
+                Console.WriteLine($"Too many turns ({Moves.Count}), winner determined randomly: player {WinnerId}");
 
-                PostProcessMoves();
+                // Skip rounds that didn't conclude.
+                Moves.Clear();
             }
 
             if (winByLine || winByElimination)
@@ -181,6 +182,7 @@ namespace Tixy
             var loserMoves = Moves.Where(m => m.PlayerIdx == loserId - 1).ToList();
             DiscountAndNormalize(winnerMoves, 1);
             DiscountAndNormalize(loserMoves, -1);
+            //Moves = new List<BoardState>(winnerMoves);
         }
 
         private static double StdDev(List<BoardState> moves, double mean)
@@ -191,7 +193,7 @@ namespace Tixy
 
         private void DiscountAndNormalize(List<BoardState> moves, double reward)
         {
-            const double DiscountFactor = 0.99;
+            const double DiscountFactor = 1.0;
             double v = reward;
             for (int i = moves.Count - 1; i >= 0; --i)
             {
@@ -200,15 +202,16 @@ namespace Tixy
                 v *= DiscountFactor;
             }
 
-            double mean = moves.Average(m => m.Value);
-            double stdDev = StdDev(moves, mean);
+            // NB: skip stdDev for now, it results in 0 when all moves are the same (no discounting). We are already in the nice -1..1 range.
+            //double mean = moves.Average(m => m.Value);
+            //double stdDev = StdDev(moves, mean) + double.MinValue;
 
-            for (int i = 0; i < moves.Count; ++i)
-            {
-                var m = moves[i];
-                m.Value -= mean;
-                m.Value /= stdDev;
-            }
+            //for (int i = 0; i < moves.Count; ++i)
+            //{
+            //    var m = moves[i];
+            //    m.Value -= mean;
+            //    m.Value /= stdDev;
+            //}
         }
 
         public static (int x, int y) FromStrPos(string p)
@@ -235,14 +238,14 @@ namespace Tixy
             var state = Util.ExportBoard(this, playerId);
             int dx = m.Dx;
             int dy = m.Dy;
-            int selectedDirection = directionLookup[(dx, dy)];
+            state.SelectedDirection = directionLookup[(dx, dy)];
 
-            int moveDstIdx = (selectedDirection * W * H) + m.Y1 * W + m.X1; // plane + pos
+            long moveDstIdx = (state.SelectedDirection * W * H) + m.Y1 * W + m.X1; // plane + pos
             state.SelectedMove[moveDstIdx] = 1;
             state.SelectedMoveIdx = moveDstIdx;
 
             Moves.Add(state);
-            DebugDiretionIdx.Add(selectedDirection);
+            DebugDiretionIdx.Add(state.SelectedDirection);
             DebugPos.Add((m.X0, m.Y0));
             
             _sb.Append((char)(m.X0 + 'A'));
