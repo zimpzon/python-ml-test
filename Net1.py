@@ -179,8 +179,8 @@ for epoch in range(epochs):
 
     with torch.no_grad():
         model.eval()
+        outputs, value = model(x_test)
 
-    outputs, value = model(x_test)
     loss_p = criterion_policy(outputs, y_test)
     loss_v = criterion_value(value, z_test)
 
