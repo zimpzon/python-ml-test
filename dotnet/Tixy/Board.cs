@@ -157,7 +157,7 @@ namespace Tixy
                 var rnd = new Random();
                 WinnerId = rnd.NextDouble() > 0.5 ? 1 : 2;
                 IsGameOver = true;
-                Console.WriteLine($"Too many turns ({Moves.Count}), winner determined randomly: player {WinnerId}");
+                //Console.WriteLine($"Too many turns ({Moves.Count}), winner determined randomly: player {WinnerId}");
 
                 // Skip rounds that didn't conclude.
                 Moves.Clear();

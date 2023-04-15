@@ -6,7 +6,7 @@ namespace Tixy
     {
         public static void Run()
         {
-            string json = File.ReadAllText("c:\\temp\\ml\\gen-1.json");
+            string json = File.ReadAllText("c:\\temp\\ml\\gen-0.json");
             var states = JsonSerializer.Deserialize<List<BoardState>>(json);
 
             int winnerForward = 0;

@@ -7,21 +7,17 @@ namespace Tixy
     {
         private IBoard _board;
         private int _playerId;
-        private readonly InferenceSession _onnxSession;
+        private InferenceSession _onnxSession;
 
         public string Name => "AI";
         
-        public PlayerAgentOnnx()
-        {
-            // Load the ONNX model and perform inference
-            string onnxModelPath = "c:\\temp\\ml\\tixy.onnx";
-            _onnxSession = new InferenceSession(onnxModelPath);
-        }
-
         public void Reset(IBoard board, int playerId)
         {
             _board = board;
             _playerId = playerId;
+
+            string onnxModelPath = "c:\\temp\\ml\\tixy.onnx";
+            _onnxSession = new InferenceSession(onnxModelPath);
         }
 
         public Move GetMove()
