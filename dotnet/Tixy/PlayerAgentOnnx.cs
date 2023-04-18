@@ -5,6 +5,7 @@ namespace Tixy
 {
     public class PlayerAgentOnnx : IPlayerAgent
     {
+        public double Epsilon { get; set; } = 1.0;
         private IBoard _board;
         private int _playerId;
         private InferenceSession _onnxSession;
@@ -42,7 +43,7 @@ namespace Tixy
 
             var rawScores = AiUtil.GetPiecesRawScores(_board, output, _playerId);
 
-            var move = AiUtil.SelectMoveByProbability(_board, rawScores, _playerId, 1.0);
+            var move = AiUtil.SelectMoveByProbability(_board, rawScores, _playerId, Epsilon);
             return move;
         }
     }

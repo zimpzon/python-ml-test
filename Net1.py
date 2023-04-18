@@ -16,7 +16,7 @@ class BoardModel(nn.Module):
     def __init__(self):
         super(BoardModel, self).__init__()
 
-        layer_size = 200
+        layer_size = 512
 
         drop = 0.5
 
@@ -106,11 +106,11 @@ if __name__ == "__main__":
     z_train = torch.tensor(z_train, dtype=torch.float32)
     z_test = torch.tensor(z_test, dtype=torch.float32)
 
-    epochs = 1000
-    learning_rate = 0.001
+    epochs = 300
+    learning_rate = 0.01
     step_size = 100  # decay the learning rate every x steps (or epochs)
     gamma = 0.9  # lr decay factor
-    batch_size = 500
+    batch_size = 200
 
     model = BoardModel()
     if os.path.isfile('c:/temp/ml/tixy.pth'):

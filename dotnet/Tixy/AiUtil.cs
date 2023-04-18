@@ -66,7 +66,7 @@
                 }
             }
 
-            selected = moveSelection.Last();
+            //selected = moveSelection.Last();
             
             (int dx, int dy) = board.DeltasFromDirection(selected.moveIdx);
             return new Move

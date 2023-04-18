@@ -70,12 +70,12 @@ namespace Tixy
             PlayerPieces.Clear();
 
             //AddPiece(1, 'T', "A1");
-            AddPiece(1, 'x', "B1");
+            AddPiece(1, 'i', "B1");
             //AddPiece(1, 'X', "C1");
             //AddPiece(1, 'Y', "D1");
 
             //AddPiece(2, 't', "A5");
-            AddPiece(2, 'X', "D5");
+            AddPiece(2, 'I', "D5");
             //AddPiece(2, 'x', "C5");
             //AddPiece(2, 'y', "D5");
         }
