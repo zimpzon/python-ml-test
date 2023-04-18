@@ -70,12 +70,12 @@ namespace Tixy
             PlayerPieces.Clear();
 
             //AddPiece(1, 'T', "A1");
-            AddPiece(1, 'i', "B1");
+            AddPiece(1, 'x', "B1");
             //AddPiece(1, 'X', "C1");
             //AddPiece(1, 'Y', "D1");
 
             //AddPiece(2, 't', "A5");
-            AddPiece(2, 'I', "D5");
+            AddPiece(2, 'X', "D5");
             //AddPiece(2, 'x', "C5");
             //AddPiece(2, 'y', "D5");
         }
@@ -177,6 +177,8 @@ namespace Tixy
         {
             int loserId = IdOtherPlayer(WinnerId);
 
+            // Only export playe 1 moves, to simplify.
+            Moves = Moves.Where(m => m.PlayerIdx == 0).ToList();
             // Discount earlier moves, then normalize (per episode, could also have been per batch).
             var winnerMoves = Moves.Where(m => m.PlayerIdx == WinnerId - 1).ToList();
             var loserMoves = Moves.Where(m => m.PlayerIdx == loserId - 1).ToList();
@@ -240,7 +242,8 @@ namespace Tixy
             int dy = m.Dy;
             state.SelectedDirection = directionLookup[(dx, dy)];
 
-            long moveDstIdx = (state.SelectedDirection * W * H) + m.Y1 * W + m.X1; // plane + pos
+            // planeidx equals moveDir
+            long moveDstIdx = (state.SelectedDirection * W * H) + m.Y0 * W + m.X0; // plane + pos
             state.SelectedMove[moveDstIdx] = 1;
             state.SelectedMoveIdx = moveDstIdx;
 

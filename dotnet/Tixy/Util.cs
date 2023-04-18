@@ -12,13 +12,6 @@
             int planeSize = Board.W * Board.H;
             int idx = 0;
 
-            // Fill player plane
-            for (int i = 0; i < planeSize; ++i)
-            {
-                state[idx] = result.PlayerIdx == 0 ? 0 : 1;
-                idx++;
-            }
-
             // Fill plane 1 - 8 for pieces
             for (int pieceIdx = 0; pieceIdx < 8; ++pieceIdx)
             {
@@ -37,7 +30,7 @@
                 }
             }
 
-            // Now we have filled 9 planes, each the size of the board.
+            // Now we have filled 8 planes, each the size of the board.
             return result;
         }
     }

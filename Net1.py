@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from sklearn.model_selection import train_test_split
 import torch
@@ -17,36 +18,44 @@ class BoardModel(nn.Module):
 
         layer_size = 200
 
+        drop = 0.5
+
         self.relu = nn.ReLU()
 
-        self.layer0 = nn.Linear(5 * 5 * 9, layer_size)
+        self.layer0 = nn.Linear(5 * 5 * 8, layer_size)
         self.bn0 = nn.BatchNorm1d(layer_size)
+        self.drop0 = nn.Dropout(drop)
 
         self.layer1 = nn.Linear(layer_size, layer_size)
         self.bn1 = nn.BatchNorm1d(layer_size)
+        self.drop1 = nn.Dropout(drop)
 
         self.layer2 = nn.Linear(layer_size, layer_size)
         self.bn2 = nn.BatchNorm1d(layer_size)
+        self.drop2 = nn.Dropout(drop)
 
         self.layer3 = nn.Linear(layer_size, layer_size)
         self.bn3 = nn.BatchNorm1d(layer_size)
+        self.drop3 = nn.Dropout(drop)
 
         self.layer4 = nn.Linear(layer_size, layer_size)
         self.bn4 = nn.BatchNorm1d(layer_size)
+        self.drop4 = nn.Dropout(drop)
 
         self.layer5 = nn.Linear(layer_size, layer_size)
         self.bn5 = nn.BatchNorm1d(layer_size)
+        self.drop5 = nn.Dropout(drop)
 
         self.out = nn.Linear(layer_size, 5 * 5 * 8)
         self.value = nn.Linear(layer_size, 1)
 
     def forward(self, x):
-        x = self.relu(self.bn0(self.layer0(x)))
-        x = self.relu(self.bn1(self.layer1(x)))
-        x = self.relu(self.bn2(self.layer2(x)))
-        # x = self.relu(self.bn3(self.layer3(x)))
-        # x = self.relu(self.bn4(self.layer4(x)))
-        # x = self.relu(self.bn5(self.layer5(x)))
+        x = self.drop0(self.relu(self.bn0(self.layer0(x))))
+        x = self.drop1(self.relu(self.bn1(self.layer1(x))))
+        x = self.drop2(self.relu(self.bn2(self.layer2(x))))
+        x = self.drop3(self.relu(self.bn3(self.layer3(x))))
+        x = self.drop4(self.relu(self.bn4(self.layer4(x))))
+        x = self.drop5(self.relu(self.bn5(self.layer5(x))))
         out = self.out(x)
         value = self.value(x)
         return out, value
@@ -74,7 +83,7 @@ if __name__ == "__main__":
     states = read_board_states('c:/temp/ml/gen-0.json')
 
     all_states = list(map(lambda s: s.get('State'), states))
-    all_states = [np.array(array_data).reshape((9 * 5 * 5))
+    all_states = [np.array(array_data).reshape((8 * 5 * 5))
                   for array_data in all_states]
 
     expected_move = list(map(lambda s: s.get('SelectedMove'), states))
@@ -98,14 +107,16 @@ if __name__ == "__main__":
     z_test = torch.tensor(z_test, dtype=torch.float32)
 
     epochs = 1000
-    learning_rate = 0.01
+    learning_rate = 0.001
     step_size = 100  # decay the learning rate every x steps (or epochs)
     gamma = 0.9  # lr decay factor
-    batch_size = 100
+    batch_size = 500
 
     model = BoardModel()
+    if os.path.isfile('c:/temp/ml/tixy.pth'):
+        model.load_state_dict(torch.load('c:/temp/ml/tixy.pth'))
 
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
     scheduler = StepLR(optimizer, step_size=step_size, gamma=gamma)
     criterion_policy = nn.CrossEntropyLoss()
     criterion_value = nn.MSELoss()
@@ -120,6 +131,8 @@ if __name__ == "__main__":
     print(f'Training samples: {len(x_train)}')
     print(f'Test samples: {len(x_test)}')
 
+
+np.set_printoptions(suppress=True)
 
 stop = False
 
@@ -154,8 +167,8 @@ for epoch in range(epochs):
         outputs, value = model(x_batch)
 
         loss_p = criterion_policy(outputs, y_batch)
-        loss_v = criterion_value(outputs, z_batch)
-        loss = loss_p + loss_v
+        loss_v = criterion_value(value, z_batch)
+        loss = loss_p
 
         epoch_policy_loss += loss_p.item()
         epoch_value_loss += loss_v.item()
@@ -184,7 +197,11 @@ for epoch in range(epochs):
     loss_p = criterion_policy(outputs, y_test)
     loss_v = criterion_value(value, z_test)
 
-    loss = loss_p + loss_v
+    probs = nn.functional.softmax(outputs, dim=1)
+
+    cnt = np.count_nonzero(probs < 0.2, axis=1)
+
+    loss = loss_p
 
     test_losses.append(loss.item())
 
@@ -213,9 +230,11 @@ for epoch in range(epochs):
         f"Epoch [{epoch+1}/{epochs}], Loss: {epoch_loss:.6f}, tLoss: {loss:.6f}, polLoss: {epoch_policy_loss:.6f}, valLoss: {epoch_value_loss:.6f}  LR: {scheduler.get_last_lr()[0]:.6f}, Acc: {accuracy:.4f} ({correct_predictions}/{len(y_test)}), accLayers: {layer_accuracy:.4f} ({correct_layers}/{len(y_test)})")
 
 
-# dummy input in correct format is required to save model, that's just how it works.
+# dummy input in correct format is required to save model, that's just how it works.b
 dummy_input = x_train[0:1]
 path = 'c:/temp/ml/tixy.onnx'
 
 torch.onnx.export(model, dummy_input, path,
-                  input_names=["input"], output_names=["output"], export_params=True)
+                  input_names=["input"], output_names=["output", "value"], export_params=True)
+
+torch.save(model.state_dict(), 'c:/temp/ml/tixy.pth')

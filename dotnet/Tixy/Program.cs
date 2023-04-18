@@ -22,7 +22,7 @@ while (true)
     //player2 = new PlayerAgentOnnx();
 
     var sw = Stopwatch.StartNew();
-    long nextPrint = 100000;
+    long nextPrint = 1000;
     var board = new Board();
 
     bool isReplay = false;
@@ -80,7 +80,7 @@ while (true)
                 moves.AddRange(board.Moves);
 
                 long ms = sw.ElapsedMilliseconds;
-                if (i == steps - 1)
+                if (ms > nextPrint || i == steps - 1)
                 {
                     int totalGames = win1 + win2;
                     double perSec = totalGames / (ms / 1000.0);
@@ -92,6 +92,9 @@ while (true)
                     nextPrint = ms + 1000;
                 }
             }
+
+            //return;
+            
             double lastWinPct = -1;
             if (File.Exists($"c:\\temp\\ml\\last-ai-win-pct.txt"))
             {
@@ -101,8 +104,8 @@ while (true)
 
             string onnxModelPath = "c:\\temp\\ml\\tixy.onnx";
             string onnxModelBackupPath = "c:\\temp\\ml\\tixy-backup.onnx";
-            string torchModelPath = "c:\\temp\\ml\\tixy.pt";
-            string torchModelBackupPath = "c:\\temp\\ml\\tixy-backup.pt";
+            string torchModelPath = "c:\\temp\\ml\\tixy.pth";
+            string torchModelBackupPath = "c:\\temp\\ml\\tixy-backup.pth";
 
             int totalGames2 = win1 + win2;
             double win1Percentage2 = (double)win1 / totalGames2 * 100;
@@ -142,7 +145,7 @@ while (true)
             }
         }
     }
-
+    
     Console.WriteLine("------------------------------------------------------------------------------------");
     Console.WriteLine("Training...");
 

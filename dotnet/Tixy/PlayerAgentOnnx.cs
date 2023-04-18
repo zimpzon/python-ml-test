@@ -24,7 +24,7 @@ namespace Tixy
         {
             var boardState = Util.ExportBoard(_board, _playerId);
 
-            var inputArray = new float[1, 225];
+            var inputArray = new float[1, 200];
             for (int i = 0; i < inputArray.Length; ++i)
                 inputArray[0, i] = boardState.State[i];
 
@@ -35,6 +35,10 @@ namespace Tixy
             var inputs = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor("input", inputTensor) };
             using var results = _onnxSession.Run(inputs);
             var output = results.First(item => item.Name == "output").AsEnumerable<float>().ToArray();
+            // Convert scores to probabilities using softmax.
+            output = AiUtil.Softmax(output);
+
+            var value = results.First(item => item.Name == "value").AsEnumerable<float>().ToArray();
 
             var rawScores = AiUtil.GetPiecesRawScores(_board, output, _playerId);
 

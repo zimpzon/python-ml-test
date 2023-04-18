@@ -8,6 +8,15 @@
 
     public static class AiUtil
     {
+        public static float[] Softmax(float[] values)
+        {
+            var maxVal = values.Max();
+            var exp = values.Select(v => Math.Exp(v - maxVal));
+            var sumExp = exp.Sum();
+
+            return exp.Select(v => (float)(v / sumExp)).ToArray();
+        }
+        
         public static Move SelectMoveByProbability(IBoard board, List<PieceMoveScores> pieceMoveScores, int playerId, double epsilon)
         {
             var moveSelection = new List<(PieceMoveScores piece, int moveIdx, float score)>();
@@ -30,14 +39,6 @@
             if (!moveSelection.Any())
                 throw new InvalidOperationException("No valid moves found");
 
-            // Convert score to probability
-            double probSum = moveSelection.Sum(m => m.score);
-            for (int i = 0; i < moveSelection.Count; ++i)
-            {
-                var move = moveSelection[i];
-                moveSelection[i] = (move.piece, move.moveIdx, (float)(move.score / probSum));
-            }
-
             // Sort valid moves by score
             moveSelection.Sort((a, b) => a.score.CompareTo(b.score));
 
@@ -54,10 +55,10 @@
             {
                 double roll = rnd.NextDouble();
 
-                for (int i = 0; i < moveSelection.Count; ++i)
+                for (int i = moveSelection.Count - 1; i >= 0; --i)
                 {
                     var move = moveSelection[i];
-                    if (roll < move.score || i == moveSelection.Count - 1)
+                    if (roll <= move.score || i == 0)
                     {
                         selected = move;
                         break;
@@ -65,6 +66,8 @@
                 }
             }
 
+            selected = moveSelection.Last();
+            
             (int dx, int dy) = board.DeltasFromDirection(selected.moveIdx);
             return new Move
             {
@@ -81,11 +84,6 @@
             float bestScore = float.MinValue;
             int bestIdx = -1;
 
-            // Algo:
-            // foreach piece
-            //  foreach move
-            //    if valid move and best so far:
-            //      store which piece + which more
             for (int i = 0; i < pieceMoveScores.Count; ++i)
             {
                 var piece = pieceMoveScores[i];
@@ -143,9 +141,14 @@
 
                     List<float> moveScores = new List<float>();
 
+                    // planes are move directions. Imagine drilling down from the top. B2 = (1, 2) = idx 6 (1 + 5).
+                    // Move scores are then 6 + (layerIdx) * 25
+                    // ex. 136 = B2, dir 5 = down. 
+                    int pieceBoardIdx = myPiece.Y * 5 + myPiece.X;
+
                     for (int layerIdx = 0; layerIdx < 8; ++layerIdx)
                     {
-                        int idx = layerIdx * Board.CellCount + (y * Board.W) + x;
+                        int idx = layerIdx * 25 + pieceBoardIdx;
                         moveScores.Add(aiOutput[idx]);
                     }
 
