@@ -16,7 +16,7 @@ class BoardModel(nn.Module):
     def __init__(self):
         super(BoardModel, self).__init__()
 
-        layer_size = 512
+        layer_size = 200
 
         drop = 0.5
 
@@ -46,6 +46,18 @@ class BoardModel(nn.Module):
         self.bn5 = nn.BatchNorm1d(layer_size)
         self.drop5 = nn.Dropout(drop)
 
+        self.layer6 = nn.Linear(layer_size, layer_size)
+        self.bn6 = nn.BatchNorm1d(layer_size)
+        self.drop6 = nn.Dropout(drop)
+
+        self.layer7 = nn.Linear(layer_size, layer_size)
+        self.bn7 = nn.BatchNorm1d(layer_size)
+        self.drop7 = nn.Dropout(drop)
+
+        self.layer8 = nn.Linear(layer_size, layer_size)
+        self.bn8 = nn.BatchNorm1d(layer_size)
+        self.drop8 = nn.Dropout(drop)
+
         self.out = nn.Linear(layer_size, 5 * 5 * 8)
         self.value = nn.Linear(layer_size, 1)
 
@@ -54,8 +66,11 @@ class BoardModel(nn.Module):
         x = self.drop1(self.relu(self.bn1(self.layer1(x))))
         x = self.drop2(self.relu(self.bn2(self.layer2(x))))
         x = self.drop3(self.relu(self.bn3(self.layer3(x))))
-        x = self.drop4(self.relu(self.bn4(self.layer4(x))))
-        x = self.drop5(self.relu(self.bn5(self.layer5(x))))
+        # x = self.drop4(self.relu(self.bn4(self.layer4(x))))
+        # x = self.drop5(self.relu(self.bn5(self.layer5(x))))
+        # x = self.drop6(self.relu(self.bn6(self.layer6(x))))
+        # x = self.drop7(self.relu(self.bn7(self.layer7(x))))
+        # x = self.drop8(self.relu(self.bn8(self.layer8(x))))
         out = self.out(x)
         value = self.value(x)
         return out, value
@@ -106,7 +121,7 @@ if __name__ == "__main__":
     z_train = torch.tensor(z_train, dtype=torch.float32)
     z_test = torch.tensor(z_test, dtype=torch.float32)
 
-    epochs = 300
+    epochs = 200
     learning_rate = 0.01
     step_size = 100  # decay the learning rate every x steps (or epochs)
     gamma = 0.9  # lr decay factor

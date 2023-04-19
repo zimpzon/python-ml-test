@@ -4,7 +4,7 @@ using Tixy;
 
 int iteration = 1;
 
-// MODEL RANDOMLY GIVES 100% WINS or CLOSE to 0. Mostly 0. Must be in the generated training data?
+//ExportAnalyzer.Run();
 
 while (true)
 {
@@ -32,7 +32,7 @@ while (true)
 
     // PARAM
     bool watch = false;
-    int steps = 1000;
+    int steps = 2000;
 
     Console.WriteLine($"Starting iteration {iteration++}\n");
 
@@ -108,6 +108,7 @@ while (true)
         string torchModelBackupPath = "c:\\temp\\ml\\tixy-backup.pth";
 
         int totalGames2 = win1 + win2;
+        bool storeMoves = false;
         double win1Percentage2 = (double)win1 / totalGames2 * 100;
         if (win1Percentage2 <= lastWinPct && !isReplay)
         {
@@ -122,19 +123,13 @@ while (true)
             }
             else
             {
-                // This is the first run and model did not improve. Back to random player.
-                File.Delete("c:\\temp\\ml\\tixy.onnx");
-                allDone = true;
-                break;
+                Console.WriteLine("...but since this is the first run we allow it anyway");
+                storeMoves = true;
             }
         }
         else
         {
-            File.WriteAllText($"c:\\temp\\ml\\last-ai-win-pct.txt", $"{win1Percentage2}");
-
-            string json = JsonSerializer.Serialize(moves, new JsonSerializerOptions { WriteIndented = false });
-            File.WriteAllText($"c:\\temp\\ml\\gen-0.json", json);
-
+            storeMoves = true;
             if (!isReplay)
             {
                 if (lastWinPct > 0)
@@ -151,16 +146,26 @@ while (true)
 
             allDone = true;
         }
+        
+        if (storeMoves)
+        {
+            File.WriteAllText($"c:\\temp\\ml\\last-ai-win-pct.txt", $"{win1Percentage2}");
+
+            string json = JsonSerializer.Serialize(moves, new JsonSerializerOptions { WriteIndented = false });
+            File.WriteAllText($"c:\\temp\\ml\\gen-0.json", json);
+        }
     }
+
+    return;
     
     Console.WriteLine("------------------------------------------------------------------------------------");
     Console.WriteLine("Training...");
 
-    string trainingCommand = "C:\\Users\\peter\\miniconda3\\python.exe";
-    string trainingParam = "c:\\Repos\\python-ml-test\\Net1.py";
+    string trainingCommand = "C:\\Users\\pwe\\Anaconda3\\python.exe";
+    string trainingParam = "c:\\Users\\pwe\\repo\\Python\\Net1.py";
     var procInfo = new ProcessStartInfo(trainingCommand)
     {
-        WorkingDirectory = "c:\\Repos\\python-ml-test",
+        WorkingDirectory = "C:\\Users\\pwe\\repo\\Python",
         Arguments = trainingParam,
         UseShellExecute = false,
         //RedirectStandardOutput = true,

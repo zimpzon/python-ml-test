@@ -69,15 +69,17 @@ namespace Tixy
         {
             PlayerPieces.Clear();
 
-            //AddPiece(1, 'T', "A1");
-            AddPiece(1, 'i', "B1");
-            //AddPiece(1, 'X', "C1");
-            //AddPiece(1, 'Y', "D1");
+            AddPiece(1, 't', "A1");
+            AddPiece(1, 'x', "B1");
+            AddPiece(1, 'y', "C1");
+            AddPiece(1, 'x', "D1");
+            AddPiece(1, 't', "E1");
 
-            //AddPiece(2, 't', "A5");
-            AddPiece(2, 'I', "D5");
-            //AddPiece(2, 'x', "C5");
-            //AddPiece(2, 'y', "D5");
+            AddPiece(2, 'T', "A5");
+            AddPiece(2, 'X', "B5");
+            AddPiece(2, 'Y', "C5");
+            AddPiece(2, 'X', "D5");
+            AddPiece(2, 'T', "E5");
         }
 
         public bool IsValidMove(int x, int y, int dir, int playerId)
@@ -177,14 +179,14 @@ namespace Tixy
         {
             int loserId = IdOtherPlayer(WinnerId);
 
-            // Only export playe 1 moves, to simplify.
+            // Only export player 1 moves, to simplify.
             Moves = Moves.Where(m => m.PlayerIdx == 0).ToList();
             // Discount earlier moves, then normalize (per episode, could also have been per batch).
             var winnerMoves = Moves.Where(m => m.PlayerIdx == WinnerId - 1).ToList();
             var loserMoves = Moves.Where(m => m.PlayerIdx == loserId - 1).ToList();
             DiscountAndNormalize(winnerMoves, 1);
             DiscountAndNormalize(loserMoves, -1);
-            //Moves = new List<BoardState>(winnerMoves);
+            Moves = new List<BoardState>(winnerMoves);
         }
 
         private static double StdDev(List<BoardState> moves, double mean)
