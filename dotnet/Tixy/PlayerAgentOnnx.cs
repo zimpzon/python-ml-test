@@ -23,6 +23,7 @@ namespace Tixy
 
         public Move GetMove()
         {
+            // Mirroring will take a lot more work. Maybe just use a plane like AlphaZero did.
             var boardState = Util.ExportBoard(_board, _playerId);
 
             var inputArray = new float[1, 200];

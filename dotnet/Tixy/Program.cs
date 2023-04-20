@@ -4,12 +4,14 @@ using Tixy;
 
 int iteration = 1;
 
+//PlayAgainstAi.Play();
+
 //ExportAnalyzer.Run();
 
 while (true)
 {
     IPlayerAgent player1;
-    IPlayerAgent player2 = new PlayerAgentRandom();
+    IPlayerAgent player2 = new PlayerAgentGreedy();
 
     if (!File.Exists("c:\\temp\\ml\\tixy.onnx"))
     {
@@ -20,8 +22,6 @@ while (true)
     {
         player1 = new PlayerAgentOnnx();
     }
-
-    //player2 = new PlayerAgentOnnx();
 
     var sw = Stopwatch.StartNew();
     long nextPrint = 1000;
@@ -34,7 +34,11 @@ while (true)
     bool watch = false;
     int steps = 2000;
 
-    Console.WriteLine($"Starting iteration {iteration++}\n");
+    var onnxPlayer = player1 as PlayerAgentOnnx;
+    if (onnxPlayer != null)
+        onnxPlayer.Epsilon = Math.Min(0.9, (iteration - 1) * 0.1 + 0.2);
+
+    Console.WriteLine($"Starting iteration {iteration++}, epsilon = {onnxPlayer?.Epsilon}\n");
 
     while (!allDone)
     {
@@ -110,7 +114,7 @@ while (true)
         int totalGames2 = win1 + win2;
         bool storeMoves = false;
         double win1Percentage2 = (double)win1 / totalGames2 * 100;
-        if (win1Percentage2 <= lastWinPct && !isReplay)
+        if (false && win1Percentage2 <= lastWinPct && !isReplay)
         {
             Console.WriteLine($"\nModel did not improve, previous wins: {lastWinPct}%, new wins: {win1Percentage2}%");
             if (File.Exists(onnxModelBackupPath))
@@ -134,7 +138,8 @@ while (true)
             {
                 if (lastWinPct > 0)
                 {
-                    Console.WriteLine($"\nModel IMPROVED, previous wins: {lastWinPct}%, new wins: {win1Percentage2}%");
+                    Console.WriteLine($"\nChanging model, previous wins: {lastWinPct}%, new wins: {win1Percentage2}%");
+                    //Console.WriteLine($"\nModel IMPROVED, previous wins: {lastWinPct}%, new wins: {win1Percentage2}%");
                     if (File.Exists(onnxModelPath))
                     {
                         Console.WriteLine("Backing up new model");
@@ -150,22 +155,21 @@ while (true)
         if (storeMoves)
         {
             File.WriteAllText($"c:\\temp\\ml\\last-ai-win-pct.txt", $"{win1Percentage2}");
+            File.AppendAllText($"c:\\temp\\ml\\win-pct-list.txt", $"{win1Percentage2:0.00}\n");
 
             string json = JsonSerializer.Serialize(moves, new JsonSerializerOptions { WriteIndented = false });
             File.WriteAllText($"c:\\temp\\ml\\gen-0.json", json);
         }
     }
 
-    return;
-    
     Console.WriteLine("------------------------------------------------------------------------------------");
     Console.WriteLine("Training...");
 
-    string trainingCommand = "C:\\Users\\pwe\\Anaconda3\\python.exe";
-    string trainingParam = "c:\\Users\\pwe\\repo\\Python\\Net1.py";
+    string trainingCommand = "C:\\Users\\peter\\miniconda3\\python.exe";
+    string trainingParam = "c:\\Repos\\python-ml-test\\Net1.py";
     var procInfo = new ProcessStartInfo(trainingCommand)
     {
-        WorkingDirectory = "C:\\Users\\pwe\\repo\\Python",
+        WorkingDirectory = "c:\\Repos\\python-ml-test",
         Arguments = trainingParam,
         UseShellExecute = false,
         //RedirectStandardOutput = true,
@@ -179,5 +183,6 @@ while (true)
     //{
     //    //Console.WriteLine(err);
     //}
+
     Console.WriteLine("------------------------------------------------------------------------------------");
 }

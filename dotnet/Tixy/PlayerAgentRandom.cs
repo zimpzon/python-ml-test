@@ -20,15 +20,6 @@
             if (myPieces.Count == 0)
                 throw new InvalidOperationException("I have no pieces");
 
-            //if (_playerId == 1)
-            //    return new Move
-            //    {
-            //        X0 = myPieces[0].X,
-            //        Y0 = myPieces[0].Y,
-            //        Dx = 0,
-            //        Dy = 1,
-            //    };
-            
             int cnt = 0;
             while (true)
             {
