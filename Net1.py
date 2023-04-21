@@ -12,21 +12,28 @@ from torch.nn import functional as F
 from data_reader import read_board_states
 
 
+import torch.nn as nn
+
+import torch.nn as nn
+
 class BoardModel(nn.Module):
     def __init__(self):
         super(BoardModel, self).__init__()
 
-        layer_size = 200
+        layer_size = 256
         drop = 0.5
 
         self.relu = nn.ReLU()
 
         # Add Conv2d layers
-        self.conv1 = nn.Conv2d(8, 64, kernel_size=3, stride=1, padding=1)
-        self.bn_c1 = nn.BatchNorm2d(64)
+        self.conv1 = nn.Conv2d(8, 128, kernel_size=3, stride=1, padding=1)
+        self.bn_c1 = nn.BatchNorm2d(128)
 
-        self.conv2 = nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1)
         self.bn_c2 = nn.BatchNorm2d(128)
+
+        # Add 1x1 convolutional layer for projection shortcut
+        self.shortcut = nn.Conv2d(8, 128, kernel_size=1, stride=1, padding=0)
 
         self.flatten = nn.Flatten()
 
@@ -46,18 +53,27 @@ class BoardModel(nn.Module):
         # Reshape the input tensor from a flat 200 element array to 8x5x5
         x = x.view(-1, 8, 5, 5)
 
+        # Residual connection for the first two Conv2d layers
+        identity = x
+
         x = self.relu(self.bn_c1(self.conv1(x)))
-        x = self.relu(self.bn_c2(self.conv2(x)))
+        x = self.bn_c2(self.conv2(x))
+
+        # Add the residual connection (with projection shortcut)
+        identity = self.shortcut(identity)
+        x += identity
+        x = self.relu(x)
 
         x = self.flatten(x)
 
         x = self.drop0(self.relu(self.bn0(self.layer0(x))))
         x = self.drop1(self.relu(self.bn1(self.layer1(x))))
-        
+
         out = self.out(x)
         value = self.value(x)
         return out, value
-
+    
+    
 ylim = 0.1
 
 
@@ -103,11 +119,11 @@ if __name__ == "__main__":
     z_train = torch.tensor(z_train, dtype=torch.float32)
     z_test = torch.tensor(z_test, dtype=torch.float32)
 
-    epochs = 60
+    epochs = 50
     learning_rate = 0.1
     step_size = 100  # decay the learning rate every x steps (or epochs)
     gamma = 0.9  # lr decay factor
-    batch_size = 500
+    batch_size = 1000
 
     model = BoardModel()
     if os.path.isfile('c:/temp/ml/tixy.pth'):
@@ -203,10 +219,10 @@ for epoch in range(epochs):
     test_losses.append(loss.item())
 
     predicted_classes = torch.argmax(outputs, dim=1)
-    predicted_layers = predicted_classes // (5 * 5)
+    predicted_layers = torch.div(predicted_classes, 5 * 5, rounding_mode='trunc')
 
     desired_predictions = torch.argmax(y_test, dim=1)
-    desired_layers = desired_predictions // (5 * 5)
+    desired_layers = torch.div(desired_predictions, 5 * 5, rounding_mode='trunc')
 
     correct_predictions = (predicted_classes ==
                            desired_predictions).sum().item()

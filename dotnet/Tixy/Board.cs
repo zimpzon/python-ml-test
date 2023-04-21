@@ -14,6 +14,7 @@ namespace Tixy
         public List<ActivePiece> PlayerPieces { get; } = new();
 
         public List<BoardState> Moves { get; private set; } = new();
+        public int MoveCount { get; private set; }
         public List<(int x, int y)> DebugPos { get; } = new();
         public List<long> DebugDiretionIdx { get; } = new();
 
@@ -26,6 +27,7 @@ namespace Tixy
 
         public void Reset()
         {
+            MoveCount = 0;
             IsGameOver = false;
             WinnerId = 0;
             Moves.Clear();
@@ -173,6 +175,8 @@ namespace Tixy
 
                 PostProcessMoves();
             }
+
+            MoveCount++;
         }
 
         private void PostProcessMoves()

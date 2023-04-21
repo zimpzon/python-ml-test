@@ -16,7 +16,7 @@ while (true)
     if (!File.Exists("c:\\temp\\ml\\tixy.onnx"))
     {
         Console.WriteLine("No model exists yet, using random player instead of AI.");
-        player1 = new PlayerAgentRandom();
+        player1 = new PlayerAgentGreedy();
     }
     else
     {
@@ -33,20 +33,22 @@ while (true)
     // PARAM
     bool watch = false;
     int steps = 2000;
+    int minMoves = 1000;
 
     var onnxPlayer = player1 as PlayerAgentOnnx;
     if (onnxPlayer != null)
-        onnxPlayer.Epsilon = Math.Min(0.9, (iteration - 1) * 0.1 + 0.2);
+        onnxPlayer.Epsilon = 0.9;// Math.Min(0.9, (iteration - 1) * 0.1 + 0.2);
 
     Console.WriteLine($"Starting iteration {iteration++}, epsilon = {onnxPlayer?.Epsilon}\n");
 
+    int totalMoveCount = 0;
     while (!allDone)
     {
         int win1 = 0;
         int win2 = 0;
         List<BoardState> moves = new();
 
-        for (int i = 0; i < steps; ++i)
+        for (int i = 0; i < steps || moves.Count < minMoves; ++i)
         {
             int turnsThisGame = 0;
 
@@ -76,6 +78,8 @@ while (true)
                     break;
             }
 
+            totalMoveCount += board.MoveCount;
+            
             if (board.WinnerId == 1)
                 win1++;
             else
@@ -91,7 +95,7 @@ while (true)
                 double win1Percentage = (double)win1 / totalGames * 100;
                 double win2Percentage = (double)win2 / totalGames * 100;
 
-                Console.WriteLine($"Total: {totalGames}, Player 1 ({player1.Name}): {win1Percentage:0.00}%, Player 2 ({player2.Name}): {win2Percentage:0.00}%, {perSec:0.00} games/s, avgTurns: {(double)moves.Count / (i + 1):0.0}");
+                Console.WriteLine($"Total: {totalGames}, Player 1 ({player1.Name}): {win1Percentage:0.00}%, Player 2 ({player2.Name}): {win2Percentage:0.00}%, {perSec:0.00} games/s, avgMoves: {(double)totalMoveCount / (i + 1):0.0}, storedMoves: {moves.Count}");
 
                 nextPrint = ms + 1000;
             }
@@ -165,16 +169,27 @@ while (true)
     Console.WriteLine("------------------------------------------------------------------------------------");
     Console.WriteLine("Training...");
 
-    string trainingCommand = "C:\\Users\\peter\\miniconda3\\python.exe";
-    string trainingParam = "c:\\Repos\\python-ml-test\\Net1.py";
+    string trainingCommand = "C:\\ProgramData\\miniconda3\\python.exe";
+    string trainingParam = "c:\\Users\\pwe\\repo\\Python\\Net1.py";
     var procInfo = new ProcessStartInfo(trainingCommand)
     {
-        WorkingDirectory = "c:\\Repos\\python-ml-test",
+        WorkingDirectory = "c:\\Users\\pwe\\repo\\Python",
         Arguments = trainingParam,
         UseShellExecute = false,
         //RedirectStandardOutput = true,
         //RedirectStandardError = true,
     };
+
+    //string trainingCommand = "C:\\Users\\peter\\miniconda3\\python.exe";
+    //string trainingParam = "c:\\Repos\\python-ml-test\\Net1.py";
+    //var procInfo = new ProcessStartInfo(trainingCommand)
+    //{
+    //    WorkingDirectory = "c:\\Repos\\python-ml-test",
+    //    Arguments = trainingParam,
+    //    UseShellExecute = false,
+    //    //RedirectStandardOutput = true,
+    //    //RedirectStandardError = true,
+    //};
     var proc = Process.Start(procInfo);
     proc.WaitForExit();
     //string err = proc.StandardError.ReadToEnd();
