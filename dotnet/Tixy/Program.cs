@@ -31,7 +31,7 @@ while (true)
     bool allDone = false;
 
     // PARAM
-    bool watch = false;
+    bool watch = true;
     int steps = 2000;
     int minMoves = 1000;
 
