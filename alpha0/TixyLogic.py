@@ -29,7 +29,7 @@ class TixyBoard():
     def getStartingBoard(w: int, h: int) -> np.ndarray:
         board = np.zeros((h, w), dtype=int)
         board[4, 0] = 2
-        board[0, 2] = -2
+        board[3, 0] = -2
         return board
 
     @staticmethod
