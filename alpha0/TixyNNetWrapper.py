@@ -12,7 +12,7 @@ from NeuralNet import NeuralNet
 import torch
 import torch.optim as optim
 
-from .TixyNNet import PixyNNet as onnet
+from TixyNNet import TixyNNet as onnet
 
 args = dotdict({
     'lr': 0.001,
@@ -20,7 +20,7 @@ args = dotdict({
     'epochs': 10,
     'batch_size': 64,
     'cuda': torch.cuda.is_available(),
-    'num_channels': 512,
+    'num_channels': 32, # 512
 })
 
 

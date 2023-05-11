@@ -35,9 +35,10 @@ class MCTS():
                    proportional to Nsa[(s,a)]**(1./temp)
         """
         for i in range(self.args.numMCTSSims):
-            self.search(canonicalBoard)
+            self.search(canonicalBoard) # pwe: return value ignored.
 
         s = self.game.stringRepresentation(canonicalBoard)
+
         counts = [self.Nsa[(s, a)] if (s, a) in self.Nsa else 0 for a in range(self.game.getActionSize())]
 
         if temp == 0:
@@ -75,7 +76,8 @@ class MCTS():
         s = self.game.stringRepresentation(canonicalBoard)
 
         if s not in self.Es:
-            self.Es[s] = self.game.getGameEnded(canonicalBoard, 1)
+            self.Es[s] = self.game.getGameEnded(canonicalBoard, 1) # pwe: we just need to know if game ended, who won is irrelevant (I hope)
+            
         if self.Es[s] != 0:
             # terminal node
             return -self.Es[s]

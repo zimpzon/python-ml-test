@@ -3,8 +3,9 @@ import logging
 import coloredlogs
 
 from Coach import Coach
-from tixy.TixyGame import TixyGame as Game
+from TixyGame import TixyGame as Game
 from utils import *
+from TixyNNetWrapper import NNetWrapper as nn
 
 log = logging.getLogger(__name__)
 
@@ -29,7 +30,7 @@ args = dotdict({
 
 def main():
     log.info('Loading %s...', Game.__name__)
-    g = Game(6)
+    g = Game(5, 5)
 
     log.info('Loading %s...', nn.__name__)
     nnet = nn(g)
