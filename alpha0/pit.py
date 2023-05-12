@@ -9,9 +9,13 @@ from utils import *
 
 g = TixyGame(5, 5)
 
-rp1 = TixyRandomPlayer(g).play
-rp2 = TixyRandomPlayer(g).play
+rp1 = TixyRandomPlayer(g, 1).play
+rp2 = TixyGreedyPlayer(g, -1).play
 
-arena = Arena.Arena(rp1, rp2, g, display=TixyGame.display)
+# in round two wins for -1 counts towards player1 wins! This makes sure wins are counted per player type, not per player id
+rp3 = TixyGreedyPlayer(g, 1).play
+rp4 = TixyRandomPlayer(g, -1).play
 
-print(arena.playGames(2, verbose=True))
+arena = Arena.Arena(rp1, rp2, rp3, rp4, g, display=TixyGame.display)
+
+print(arena.playGames(500, verbose=False))

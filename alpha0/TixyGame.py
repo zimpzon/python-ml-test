@@ -56,9 +56,9 @@ class TixyGame(Game):
         assert dx != 0 or dy != 0
 
         board[row, col] = 0
-        dstPiece = board[row + dy, col + dx]
-        if dstPiece != 0:
-            print("haps")
+        # dstPiece = board[row + dy, col + dx]
+        # if dstPiece != 0:
+        #     print("haps")
 
         board[row + dy, col + dx] = piece
 
@@ -75,45 +75,44 @@ class TixyGame(Game):
 
         for i in range(flat.size):
             piece = flat[i]
-            if piece != 0:
+            piece_found = piece > 0 if player == 1 else piece < 0
+            if piece_found:
                 x = i % self.W
                 y = i // self.W
 
                 # valid_directions is a list of validated tuples (dx, dy)
-                valid_directions = TixyBoard.getValidDirections(board, x, y, piece)
+                valid_directions = TixyBoard.getValidDirections(board, x, y, piece, player)
                 for _, _, plane_idx in valid_directions:
                     valid_moves[i + plane_idx * self.W * self.H] = 1
 
-        print(f'getValid moves for player {player}, valid count: {np.sum(valid_moves == 1)}')
+        # print(f'getValid moves for player {player}, valid count: {np.sum(valid_moves == 1)}')
         return valid_moves
 
     def getGameEnded(self, board, player) -> float:
-        # canonical board, always called with player = 1
-        # win condition. a piece reached opponents line (for now).
-        # 1 if player won, -1 if player lost, small non-zero value for draw.
+        # ignore player, always seen from player 1.
 
         # return draw if too many turns
         self.Turns += 1
         if (self.Turns > 50):
             return 1e-4
 
-        # pwe: NB! Called with canonical from MCTS, where it doesn't matter who won, only that the game is over.
-        # Called with actual board from Arena and coach, where it matters who won.
+        pl1NoPieces = np.all(board <= 0)
+        pl2NoPieces = np.all(board >= 0)
 
-        # TODO TODO: return according to player input.
         row0_has_positive_value = np.any(board[0] > 0)
         row4_has_negative_value = np.any(board[4] < 0)
-        if (row0_has_positive_value):
+
+        if (row0_has_positive_value or pl2NoPieces):
             return 1
-        elif (row4_has_negative_value):
+        elif (row4_has_negative_value or pl1NoPieces):
             return -1
         else:
             return 0
 
     def getCanonicalForm(self, board, player) -> np.ndarray:
         # canonical: your pieces are positive at the bottom, and opponents pieces are negative at the top, no matter if you are p1 or p2.
-        c_board = board #if player == 1 else np.rot90(np.rot90(board))
-        return c_board #* player
+        c_board = board if player == 1 else np.rot90(np.rot90(board))
+        return c_board * player
 
     def getSymmetries(self, board, pi):
         # returns array of tuple (board, pi)

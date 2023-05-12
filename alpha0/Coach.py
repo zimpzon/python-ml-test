@@ -52,10 +52,13 @@ class Coach():
 
         while True:
             episodeStep += 1
+            # TODO: this loop calls getActionProb to get action probabilities, then choses an action.
+            # the subcode is a blackbox. Do whatever it takes to make MCTS happy. 
+            # NB! maybe need to make a copy of board when calling.
             canonicalBoard = self.game.getCanonicalForm(board, self.curPlayer)
             temp = int(episodeStep < self.args.tempThreshold)
 
-            pi = self.mcts.getActionProb(canonicalBoard, temp=temp)
+            pi = self.mcts.getActionProb(board, current_player=1, temp=temp)
             sym = self.game.getSymmetries(canonicalBoard, pi)
             for b, p in sym:
                 trainExamples.append([b, self.curPlayer, p, None])

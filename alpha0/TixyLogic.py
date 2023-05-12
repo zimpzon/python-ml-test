@@ -28,17 +28,30 @@ class TixyBoard():
     @staticmethod
     def getStartingBoard(w: int, h: int) -> np.ndarray:
         board = np.zeros((h, w), dtype=int)
-        board[4, 0] = 2
-        board[3, 0] = -2
+
+        board[4, 0] = 3
+        board[4, 1] = 3
+        board[4, 2] = 3
+        board[4, 3] = 3
+        board[4, 4] = 3
+
+        board[0, 0] = -3
+        board[0, 1] = -3
+        board[0, 2] = -3
+        board[0, 3] = -3
+        board[0, 4] = -3
+
         return board
 
     @staticmethod
-    def getValidDirections(board: np.ndarray, x: int, y: int, piece: int) -> np.ndarray:
+    def getValidDirections(board: np.ndarray, x: int, y: int, piece: int, player: int) -> np.ndarray:
         result = []
         for direction in TixyBoard._piece_directions[piece]:
             dx, dy = direction
             if x + dx >= 0 and x + dx < board.shape[1] and y + dy >= 0 and y + dy < board.shape[0]:
-                if board[y + dy, x + dx] == 0:
+                piece = board[y + dy, x + dx]
+                is_legal_target = piece <= 0 if player == 1 else piece >= 0
+                if is_legal_target:
                     plane_idx = TixyBoard._plane_idx[direction]
                     result.append((dx, dy, plane_idx))
 
