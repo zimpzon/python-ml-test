@@ -2,7 +2,6 @@ import Arena
 from MCTS import MCTS
 from TixyGame import TixyGame
 
-
 import numpy as np
 from TixyPlayers import TixyGreedyPlayer, TixyRandomPlayer
 from utils import *

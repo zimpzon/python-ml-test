@@ -9,7 +9,6 @@ class TixyGame(Game):
         self.H = h
 
     def getInitBoard(self):
-        self.Turns = 0
         # starting board, same format as returned by getNextState
         return TixyBoard.getStartingBoard(self.W, self.H)
 
@@ -85,17 +84,10 @@ class TixyGame(Game):
                 for _, _, plane_idx in valid_directions:
                     valid_moves[i + plane_idx * self.W * self.H] = 1
 
-        # print(f'getValid moves for player {player}, valid count: {np.sum(valid_moves == 1)}')
+        #print(f'getValid moves for player {player}, valid count: {np.sum(valid_moves == 1)}')
         return valid_moves
 
     def getGameEnded(self, board, player) -> float:
-        # ignore player, always seen from player 1.
-
-        # return draw if too many turns
-        self.Turns += 1
-        if (self.Turns > 50):
-            return 1e-4
-
         pl1NoPieces = np.all(board <= 0)
         pl2NoPieces = np.all(board >= 0)
 
@@ -103,9 +95,9 @@ class TixyGame(Game):
         row4_has_negative_value = np.any(board[4] < 0)
 
         if (row0_has_positive_value or pl2NoPieces):
-            return 1
+            return 1 * player
         elif (row4_has_negative_value or pl1NoPieces):
-            return -1
+            return -1 * player
         else:
             return 0
 

@@ -47,29 +47,38 @@ class Coach():
         """
         trainExamples = []
         board = self.game.getInitBoard()
-        self.curPlayer = 1
+        cur_player = 1
         episodeStep = 0
+
+        canonical_board = self.game.getCanonicalForm(board, cur_player)
 
         while True:
             episodeStep += 1
-            # TODO: this loop calls getActionProb to get action probabilities, then choses an action.
-            # the subcode is a blackbox. Do whatever it takes to make MCTS happy. 
-            # NB! maybe need to make a copy of board when calling.
-            canonicalBoard = self.game.getCanonicalForm(board, self.curPlayer)
             temp = int(episodeStep < self.args.tempThreshold)
 
-            pi = self.mcts.getActionProb(board, current_player=1, temp=temp)
-            sym = self.game.getSymmetries(canonicalBoard, pi)
-            for b, p in sym:
-                trainExamples.append([b, self.curPlayer, p, None])
+            policy_probs = self.mcts.getActionProb(canonical_board.copy(), temp=temp)
+            print(f'getValid moves for player {cur_player}, valid count: {np.count_nonzero(policy_probs)}')
 
-            action = np.random.choice(len(pi), p=pi)
-            board, self.curPlayer = self.game.getNextState(board, self.curPlayer, action)
+            sym = self.game.getSymmetries(canonical_board, policy_probs)
+            for sym_board, sym_board_probs in sym:
+                trainExamples.append([sym_board, sym_board_probs, cur_player])
 
-            r = self.game.getGameEnded(board, self.curPlayer)
+            action = np.random.choice(len(policy_probs), p=policy_probs)
+            canonical_board, next_player = self.game.getNextState(canonical_board, cur_player, action)
+            print(canonical_board)
+            print()
+
+            r = self.game.getGameEnded(canonical_board, cur_player)
+            # a draw game that ran for too many steps is not interesting as training data, so we skip it
+            if r == 0 and episodeStep >= 250:
+                return []
 
             if r != 0:
-                return [(x[0], x[2], r * ((-1) ** (x[1] != self.curPlayer))) for x in trainExamples]
+                return [(sym_board, sym_probs, r if player == cur_player else -r) for (sym_board, sym_probs, player) in trainExamples]
+            
+            cur_player = next_player
+            canonical_board = self.game.getCanonicalForm(canonical_board, -1)
+
 
     def learn(self):
         """

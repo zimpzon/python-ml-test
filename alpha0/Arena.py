@@ -4,13 +4,12 @@ from tqdm import tqdm
 
 log = logging.getLogger(__name__)
 
-
 class Arena():
     """
     An Arena class where any 2 agents can be pit against each other.
     """
 
-    def __init__(self, player1, player2, player3, player4, game, display=None):
+    def __init__(self, player1, player2, game, display=None):
         """
         Input:
             player 1,2: two functions that takes board as input, return action
@@ -24,8 +23,6 @@ class Arena():
         """
         self.player1 = player1
         self.player2 = player2
-        self.player3 = player3
-        self.player4 = player4
         self.game = game
         self.display = display
 
@@ -39,32 +36,33 @@ class Arena():
             or
                 draw result returned from the game that is neither 1, -1, nor 0.
         """
+        players = [self.player2, None, self.player1]
         curPlayer = 1
         board = self.game.getInitBoard()
         it = 0
-        while self.game.getGameEnded(board, 1) == 0:
+        while self.game.getGameEnded(board, curPlayer) == 0:
             it += 1
             if verbose:
                 assert self.display
                 print("Turn ", str(it), "Player ", str(curPlayer))
                 self.display(board)
 
-            action = self.player1(board) if curPlayer == 1 else self.player2(board)
+            action = players[curPlayer + 1](self.game.getCanonicalForm(board, curPlayer))
 
-            valids = self.game.getValidMoves(board, curPlayer)
+            valids = self.game.getValidMoves(self.game.getCanonicalForm(board, curPlayer), 1)
 
             if valids[action] == 0:
                 log.error(f'Action {action} is not valid!')
                 log.debug(f'valids = {valids}')
                 assert valids[action] > 0
             board, curPlayer = self.game.getNextState(board, curPlayer, action)
-
+            
         if verbose:
             assert self.display
-            print("Game over: Turn ", str(it), "Result ", str(self.game.getGameEnded(board, curPlayer)))
+            print("Game over: Turn ", str(it), "Result ", str(self.game.getGameEnded(board, 1)))
             self.display(board)
-
-        return self.game.getGameEnded(board, curPlayer)
+            
+        return self.game.getGameEnded(board, curPlayer * -1) # * -1 because curPlayer is switched before loop ends
 
     def playGames(self, num, verbose=False):
         """
@@ -90,8 +88,7 @@ class Arena():
             else:
                 draws += 1
 
-        self.player1 = self.player3
-        self.player2 = self.player4
+        self.player1, self.player2 = self.player2, self.player1
 
         for _ in tqdm(range(num), desc="Arena.playGames (2)"):
             gameResult = self.playGame(verbose=verbose)
