@@ -9,6 +9,8 @@ from TixyNNetWrapper import NNetWrapper as nn
 
 log = logging.getLogger(__name__)
 
+# TODO ADD DIRICHLET NOISE WHEN TRAINING!
+
 coloredlogs.install(level='INFO')  # Change this to DEBUG to see more info.
 
 # args = dotdict({
