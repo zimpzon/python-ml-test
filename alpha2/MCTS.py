@@ -72,6 +72,8 @@ class MCTS():
             v: the negative of the value of the current canonicalBoard
         """
 
+        print("search depth " + str(depth))
+
         s = self.game.stringRepresentation(board)
 
         if s not in self.gameended_state:
@@ -81,7 +83,7 @@ class MCTS():
             # terminal node
             # since MCTS starts from "real game" position, a depth of 1 is normal
             #print("terminal node at depth " + str(depth))
-            return -self.gameended_state[s]
+            return self.gameended_state[s]
 
         if s not in self.policy_for_state:
             # leaf node
@@ -95,14 +97,14 @@ class MCTS():
                 # if all valid moves were masked make all valid moves equally probable
 
                 # NB! All valid moves may be masked if either your NNet architecture is insufficient or you've get overfitting or something else.
-                # If you have got dozens or hundreds of these messages you should pay attention to your NNet and/or training process.   
+                # If you have got dozens or hundreds of these messages you should pay attention to your NNet and/or training process.
                 log.error("All valid moves were masked, doing a workaround.")
                 self.policy_for_state[s] = self.policy_for_state[s] + valids
                 self.policy_for_state[s] /= np.sum(self.policy_for_state[s])
 
             self.validmoves_state[s] = valids
             self.visitcount_state[s] = 0
-            # return -v # pwe: do not want. after expand we should continue, right?
+            return v # pwe: to return or not return. I'd like to continue from expanded node, but the returned V is used below.
 
         valids = self.validmoves_state[s]
         cur_best = -float('inf')
@@ -110,21 +112,24 @@ class MCTS():
 
         # pick the action with the highest upper confidence bound
         valid_indices = np.nonzero(valids)[0] # wtf this returns an array with values at idx 0 and datatype at idx1
-        a = np.random.choice(valid_indices)
 
-        # for a in range(self.game.getActionSize()):
-        #     if valids[a]:
-        #         if (s, a) in self.q_for_stateaction:
-        #             u = self.q_for_stateaction[(s, a)] + self.args.cpuct * self.policy_for_state[s][a] * math.sqrt(self.visitcount_state[s]) / (
-        #                     1 + self.visitcount_stateaction[(s, a)])
-        #         else:
-        #             u = self.args.cpuct * self.policy_for_state[s][a] * math.sqrt(self.visitcount_state[s] + EPS)  # Q = 0 ?
+        # a = np.random.choice(valid_indices)
 
-        #         if u > cur_best:
-        #             cur_best = u
-        #             best_act = a
+        # just keeps going up and down at some point. Valids looks correct, up and down were correctly set to 1.
+        # happens after a few main game moves. TEMP?
+        for a in range(self.game.getActionSize()):
+            if valids[a]:
+                if (s, a) in self.q_for_stateaction:
+                    u = self.q_for_stateaction[(s, a)] + self.args.cpuct * self.policy_for_state[s][a] * math.sqrt(self.visitcount_state[s]) / (
+                            1 + self.visitcount_stateaction[(s, a)])
+                else:
+                    u = self.args.cpuct * self.policy_for_state[s][a] * math.sqrt(self.visitcount_state[s] + EPS)  # Q = 0 ?
 
-        # a = best_act
+                if u > cur_best:
+                    cur_best = u
+                    best_act = a
+
+        a = best_act
 
         next_s, _ = self.game.getNextState(board, 1, a)
         next_s = self.game.turnBoard(next_s)
