@@ -12,6 +12,7 @@ from Arena import Arena
 from MCTS import MCTS
 from MCTS2 import MCTS2
 from TixyGame import TixyGame
+from TixyPlayers import TixyRandomPlayer
 
 log = logging.getLogger(__name__)
 
@@ -69,7 +70,6 @@ class Coach():
 
             if r != 0:
                 winning_player = -self.curPlayer # minus since we already switched player
-                r = winning_player
                 # print(f'Game ended with result {r}')
                 return [(x[0], x[1], 1 if x[2] == winning_player else -1) for x in trainExamples]
 
@@ -120,6 +120,17 @@ class Coach():
 
             self.nnet.train(trainExamples)
             nmcts = MCTS(self.game, self.nnet, self.args)
+
+
+            log.info('PITTING AGAINST RANDOM PLAYER')
+            new_against_rnd = MCTS(self.game, self.nnet, self.args)
+            arena = Arena(TixyRandomPlayer(self.game).play,
+                          lambda x: np.argmax(new_against_rnd.getActionProb(x, temp=0)),
+                          self.game,
+                          display = TixyGame.display)
+            
+            pwins, nwins, draws = arena.playGames(self.args.arenaCompare, verbose=False)
+            log.info('NEW/RND WINS : %d / %d ; DRAWS : %d' % (nwins, pwins, draws))
 
             log.info('PITTING AGAINST PREVIOUS VERSION')
             arena = Arena(lambda x: np.argmax(pmcts.getActionProb(x, temp=0)),

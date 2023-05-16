@@ -107,11 +107,27 @@ class TixyGame(Game):
     def turnBoard(self, board):
         return np.rot90(np.rot90(board)) * -1
     
-    def getSymmetries(self, board, pi):
-        # returns array of tuple (board, pi)
-        # probably canonical?
-        # definately mirror. rotation if square, or padded.
+    def getSymmetries2(self, board, pi):
         return [(board, pi)]
+
+    def getSymmetries(self, board, pi):
+        return [(board, pi)]
+    
+        # flipping ALMOST works, but it also needs to flip the directiom of the move idx (0..5)
+        # since it introduces more uncertainty save it for later
+        assert len(board.shape) == 2, "Board must be 2D"
+        
+        # Original board and pi
+        original = (board, pi)
+
+        # Flip board along the appropriate axis
+        board_flipped = np.flip(board, axis=1)
+
+        # Reshape pi to 3D, flip it and then flatten it back to 1D
+        pi = np.array(pi).reshape(6, 5, 5)
+        pi_flipped = np.flip(pi, axis=2).flatten().tolist()
+
+        return [original, (board_flipped, pi_flipped)]
 
     def stringRepresentation(self, board):
         return np.array2string(board)
