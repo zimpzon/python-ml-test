@@ -9,7 +9,7 @@ from utils import *
 g = TixyGame(5, 5)
 
 rp1 = TixyRandomPlayer(g, 1).play
-rp2 = TixyGreedyPlayer(g, -1).play
+rp2 = TixyRandomPlayer(g, -1).play
 
 # in round two wins for -1 counts towards player1 wins! This makes sure wins are counted per player type, not per player id
 rp3 = TixyGreedyPlayer(g, 1).play

@@ -49,7 +49,9 @@ class TixyGame(Game):
 
         return row, col, piece, dx, dy
 
-    def getNextState(self, board, player, action) -> np.ndarray:
+    def getNextState(self, immutable_board, player, action) -> np.ndarray:
+        board = np.copy(immutable_board)
+
         row, col, piece, dx, dy = self.decodeAction(board, action)
         assert piece != 0
         assert dx != 0 or dy != 0
