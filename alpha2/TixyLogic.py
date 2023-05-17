@@ -38,7 +38,7 @@ class TixyBoard():
         board[0, 0] = 0
         board[0, 1] = 0
         board[0, 2] = 0
-        board[0, 3] = -2
+        board[0, 3] = -3
         board[0, 4] = 0
 
         return board
