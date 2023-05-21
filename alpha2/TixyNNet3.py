@@ -18,10 +18,11 @@ class TixyNet(nn.Module):
 
         super(TixyNet, self).__init__()
 
-        self.fc1 = nn.Linear(8 * 5 * 5, 512)
-        self.fc_bn1 = nn.BatchNorm1d(512)
+        # a single layer of cnn maybe? Must be many layers, how much space does it take?
+        self.fc1 = nn.Linear(8 * 5 * 5, 1024)
+        self.fc_bn1 = nn.BatchNorm1d(1024)
 
-        self.fc2 = nn.Linear(512, 512)
+        self.fc2 = nn.Linear(1024, 512)
         self.fc_bn2 = nn.BatchNorm1d(512)
 
         self.fc3 = nn.Linear(512, self.action_size)

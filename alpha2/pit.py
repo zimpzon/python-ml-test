@@ -9,7 +9,7 @@ from utils import *
 
 g = TixyGame(5, 5)
 
-rp1 = TixyRandomPlayer(g).play
+rp1 = TixyGreedyPlayer(g).play
 rp2 = TixyRandomPlayer(g).play
 
 h = TixyHumanPlayer(g).play
@@ -21,6 +21,6 @@ args1 = dotdict({'numMCTSSims': 50, 'cpuct':1.0})
 mcts1 = MCTS(g, n1, args1)
 n1p = lambda x: np.argmax(mcts1.getActionProb(x, temp=0))
 
-arena = Arena.Arena(n1p, h, g, display=TixyGame.display)
+arena = Arena.Arena(rp1, n1p, g, display=TixyGame.display)
 
-arena.playGames(2, verbose=True)
+arena.playGames(20, verbose=False)

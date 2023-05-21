@@ -9,7 +9,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-class TixyNet2(nn.Module):
+class TixyNet(nn.Module):
     def __init__(self, game, args):
         # game params
         self.board_x, self.board_y = game.getBoardSize()
