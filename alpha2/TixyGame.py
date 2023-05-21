@@ -105,12 +105,15 @@ class TixyGame(Game):
             return 0
 
     def turnBoard(self, board):
-        return np.rot90(np.rot90(board)) * -1
+        return np.rot90(np.rot90(board.copy())) * -1
     
     def getSymmetries2(self, board, pi):
         return [(board, pi)]
 
     def getSymmetries(self, board, pi):
+        # convert pi into 5x5 so both have the same shape
+        # do the stuff and flatten pi, then return.
+        # Verify by rotating/flipping again and compare with input.
         return [(board, pi)]
     
         # flipping ALMOST works, but it also needs to flip the directiom of the move idx (0..5)

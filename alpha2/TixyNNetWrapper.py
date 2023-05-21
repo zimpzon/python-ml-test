@@ -4,6 +4,7 @@ import time
 
 import numpy as np
 from tqdm import tqdm
+import torch.nn as nn
 
 sys.path.append('../../')
 from utils import *
@@ -12,19 +13,19 @@ from NeuralNet import NeuralNet
 import torch
 import torch.optim as optim
 
-from TixyNNet import TixyNNet as onnet
+from TixyNNet3 import TixyNet as onnet
 
 args = dotdict({
-    'lr': 0.001,
-    'dropout': 0.3,
-    'epochs': 10,
+    'lr': 0.001, # 0.001
+    'dropout': 0.3, # 0.3
+    'epochs': 10, # 10
     'batch_size': 64,
     'cuda': torch.cuda.is_available(),
-    'num_channels': 32, # 512
+    #'num_channels': 128, # 512
 })
 
 
-class NNetWrapper(NeuralNet):
+class TixyNetWrapper(NeuralNet):
     def __init__(self, game):
         self.nnet = onnet(game, args)
         self.board_x, self.board_y = game.getBoardSize()
@@ -63,6 +64,7 @@ class NNetWrapper(NeuralNet):
                 out_pi, out_v = self.nnet(boards)
                 l_pi = self.loss_pi(target_pis, out_pi)
                 l_v = self.loss_v(target_vs, out_v)
+                
                 total_loss = l_pi + l_v
 
                 # record loss
@@ -93,6 +95,7 @@ class NNetWrapper(NeuralNet):
         # print('PREDICTION TIME TAKEN : {0:03f}'.format(time.time()-start))
         return torch.exp(pi).data.cpu().numpy()[0], v.data.cpu().numpy()[0]
 
+    # this only works when targets and output sum to 1. A target of 0 generates 0 loss due to the mul.
     def loss_pi(self, targets, outputs):
         return -torch.sum(targets * outputs) / targets.size()[0]
 

@@ -9,7 +9,6 @@ EPS = 1e-8
 
 log = logging.getLogger(__name__)
 
-
 class MCTS():
     """
     This class handles the MCTS tree.
@@ -75,21 +74,30 @@ class MCTS():
         """
 
         # print("search depth " + str(depth))
-
+        if (depth > 50):
+            # print("max depth reached: 50")
+            return -0.0001
+        
         s = self.game.stringRepresentation(board)
 
         if s not in self.gameended_state:
-            self.gameended_state[s] = self.game.getGameEnded(board, 1)
+            game_ended = self.game.getGameEnded(board, 1)
+            self.gameended_state[s] = game_ended
 
         if self.gameended_state[s] != 0:
             # terminal node
             # since MCTS starts from "real game" position, a depth of 1 is normal
-            print("terminal node at depth " + str(depth))
-            return -self.gameended_state[s]
+            game_ended = self.gameended_state[s]
+            # print(f"terminal node at depth {depth}, result={game_ended}")
+            return -game_ended
 
         if s not in self.policy_for_state:
             # leaf node
             self.policy_for_state[s], v = self.nnet.predict(board)
+            #self.policy_for_state[s] = [0.5] * len(self.policy_for_state[s])
+            v = v[0]
+            #v = 0.5
+
             valids = self.game.getValidMoves(board, 1)
             self.policy_for_state[s] = self.policy_for_state[s] * valids  # masking invalid moves
             sum_policy_state = np.sum(self.policy_for_state[s])
@@ -107,7 +115,7 @@ class MCTS():
             self.validmoves_state[s] = valids
             self.visitcount_state[s] = 0
 
-            print("expanded node at depth " + str(depth))
+            # print(f"expanded node at depth {depth}, v: {v:.8f}, player: {Info.getPlayerId(self.game, board, valids)}")
             return -v
 
         valids = self.validmoves_state[s]
@@ -120,6 +128,7 @@ class MCTS():
         # pick the action with the highest upper confidence bound
 
         # print(f"visitcount S: {self.visitcount_state[s]:.8f}")
+        # stuck in a loop here
         for a in range(self.game.getActionSize()):
             if valids[a]:
                 if (s, a) in self.q_for_stateaction:
@@ -129,7 +138,6 @@ class MCTS():
                     visit_count_sa = self.visitcount_stateaction[(s, a)]
 
                     u = (q_sa + self.args.cpuct * sa_policy * math.sqrt(visit_count_s) / (1 + visit_count_sa ))
-                    # print(f"visitcount SA: {self.visitcount_stateaction[(s, a)]:.8f}")
                 else:
                     sa_policy = self.policy_for_state[s][a]
                     visit_count_s = self.visitcount_state[s]
@@ -137,19 +145,24 @@ class MCTS():
                     u = self.args.cpuct * sa_policy * math.sqrt(visit_count_s + EPS)  # Q = 0 ?
 
                 u = float(u)
-                print(f"u for action {a} = {u:.8f}, depth: {depth}, player: {Info.getPlayerId(self.game, board, valids)}")
-
                 if u > cur_best:
                     cur_best = u
                     best_act = a
 
-        print(f"selected: {best_act}, u: {cur_best:.8f}\n")
         a = best_act
+        # print(f"action {a}, depth: {depth}, player: {Info.getPlayerId(self.game, board, valids)}")
 
+        if (s, a) not in self.visitcount_stateaction:
+            self.visitcount_stateaction[(s, a)] = 1
+        else:
+            self.visitcount_stateaction[(s, a)] += 1
+
+        self.visitcount_state[s] += 1
         next_s, _ = self.game.getNextState(board, 1, a)
         next_s = self.game.turnBoard(next_s)
 
         v = self.search(next_s, depth + 1)
+        # print(f"backpropagating v: {v:.8f}, depth: {depth}, player: {Info.getPlayerId(self.game, board, valids)}")
 
         if (s, a) in self.q_for_stateaction:
             visit_count_sa = self.visitcount_stateaction[(s, a)]
@@ -157,11 +170,11 @@ class MCTS():
             new_q =  (visit_count_sa * q_sa + v) / (visit_count_sa + 1)
 
             self.q_for_stateaction[(s, a)] = new_q
-            self.visitcount_stateaction[(s, a)] += 1
+            # self.visitcount_stateaction[(s, a)] += 1
 
         else:
             self.q_for_stateaction[(s, a)] = v
-            self.visitcount_stateaction[(s, a)] = 1
+            # self.visitcount_stateaction[(s, a)] = 1
 
-        self.visitcount_state[s] += 1
+        # self.visitcount_state[s] += 1
         return -v

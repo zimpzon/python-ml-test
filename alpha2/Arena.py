@@ -41,7 +41,7 @@ class Arena():
         cur_player = 1
         board = self.game.getInitBoard()
         it = 0
-
+        
         while self.game.getGameEnded(board, 1) == 0:
             it += 1
 
@@ -102,7 +102,7 @@ class Arena():
             else:
                 draws += 1
 
-        print("wins1: %d, losses: %d, draws: %d" % (oneWon, twoWon, draws))
+        print("pl1: %d, pl2: %d" % (oneWon, twoWon))
               
         self.player1, self.player2 = self.player2, self.player1
 
@@ -115,7 +115,7 @@ class Arena():
             else:
                 draws += 1
 
-        print("wins2: %d, losses: %d, draws: %d" % (oneWon, twoWon, draws))
+        print("pl1: %d, pl2: %d" % (oneWon, twoWon))
 
         # prev, new
         return oneWon, twoWon, draws

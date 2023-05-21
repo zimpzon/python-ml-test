@@ -1,32 +1,26 @@
 import Arena
 from MCTS import MCTS
-from TixyNNetWrapper import NNetWrapper as nn
+from TixyGame import TixyGame
 
 import numpy as np
-from TixyGame import TixyGame
-from TixyNNetWrapper import NNetWrapper
-from TixyPlayers import TixyRandomPlayer
+from TixyNNetWrapper import TixyNetWrapper
+from TixyPlayers import TixyGreedyPlayer, TixyHumanPlayer, TixyRandomPlayer
 from utils import *
-
-"""
-use this script to play any two agents against each other, or play manually with
-any agent.
-"""
-
 
 g = TixyGame(5, 5)
 
-nnet = nn(g)
+rp1 = TixyRandomPlayer(g).play
+rp2 = TixyRandomPlayer(g).play
 
-net = nnet.__class__(g) 
-net.load_checkpoint(folder='./temp/', filename='temp.pth.tar')
+h = TixyHumanPlayer(g).play
 
-pmcts = MCTS(g, nnet, self.args)
+n1 = TixyNetWrapper(g)
+n1.load_checkpoint('./temp/','best.pth.tar')
 
+args1 = dotdict({'numMCTSSims': 50, 'cpuct':1.0})
+mcts1 = MCTS(g, n1, args1)
+n1p = lambda x: np.argmax(mcts1.getActionProb(x, temp=0))
 
-p1 = TixyRandomPlayer(g).play
-p2 = TixyRandomPlayer(g).play
+arena = Arena.Arena(n1p, h, g, display=TixyGame.display)
 
-arena = Arena.Arena(p1, p2, g, display=TixyGame.display)
-
-print(arena.playGames(100, verbose=False))
+arena.playGames(2, verbose=True)

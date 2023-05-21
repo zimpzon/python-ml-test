@@ -12,7 +12,7 @@ from Arena import Arena
 from MCTS import MCTS
 from MCTS2 import MCTS2
 from TixyGame import TixyGame
-from TixyPlayers import TixyRandomPlayer
+from TixyPlayers import TixyGreedyPlayer, TixyRandomPlayer
 
 log = logging.getLogger(__name__)
 
@@ -70,7 +70,7 @@ class Coach():
 
             if r != 0:
                 winning_player = -self.curPlayer # minus since we already switched player
-                # print(f'Game ended with result {r}')
+                # print(f'Game ended with result {winning_player}')
                 return [(x[0], x[1], 1 if x[2] == winning_player else -1) for x in trainExamples]
 
             board = self.game.turnBoard(board)
@@ -103,7 +103,7 @@ class Coach():
                     f"Removing the oldest entry in trainExamples. len(trainExamplesHistory) = {len(self.trainExamplesHistory)}")
                 self.trainExamplesHistory.pop(0)
             # backup history to a file
-            # NB! the examples were collected using the model from the previous iteration, so (i-1)  
+            # NB! the examples were collected using the model from the previous iteration, so (i-1)
             self.saveTrainExamples(i - 1)
 
             # shuffle examples before training
@@ -121,24 +121,33 @@ class Coach():
             self.nnet.train(trainExamples)
             nmcts = MCTS(self.game, self.nnet, self.args)
 
-
-            log.info('PITTING AGAINST RANDOM PLAYER')
-            new_against_rnd = MCTS(self.game, self.nnet, self.args)
-            arena = Arena(TixyRandomPlayer(self.game).play,
-                          lambda x: np.argmax(new_against_rnd.getActionProb(x, temp=0)),
-                          self.game,
-                          display = TixyGame.display)
+            # log.info('PITTING AGAINST RANDOM PLAYER')
+            # new_against_rnd = MCTS(self.game, self.nnet, self.args)
+            # arena = Arena(TixyRandomPlayer(self.game).play,
+            #               lambda x: np.argmax(new_against_rnd.getActionProb(x, temp=0)),
+            #               self.game,
+            #               display = TixyGame.display)
             
-            pwins, nwins, draws = arena.playGames(self.args.arenaCompare, verbose=False)
-            log.info('NEW/RND WINS : %d / %d ; DRAWS : %d' % (nwins, pwins, draws))
+            # pwins, nwins, draws = arena.playGames(self.args.arenaCompare, verbose=False)
+            # log.info('NEW/RND : %d / %d ' % (nwins, pwins))
+
+            # log.info('PITTING AGAINST GREEDY PLAYER')
+            # new_against_rnd = MCTS(self.game, self.nnet, self.args)
+            # arena = Arena(TixyGreedyPlayer(self.game).play,
+            #               lambda x: np.argmax(new_against_rnd.getActionProb(x, temp=0)),
+            #               self.game,
+            #               display = TixyGame.display)
+            
+            # pwins, nwins, draws = arena.playGames(self.args.arenaCompare, verbose=False)
+            # log.info('NEW/GREEDY : %d / %d' % (nwins, pwins))
 
             log.info('PITTING AGAINST PREVIOUS VERSION')
             arena = Arena(lambda x: np.argmax(pmcts.getActionProb(x, temp=0)),
                           lambda x: np.argmax(nmcts.getActionProb(x, temp=0)), self.game, display = TixyGame.display)
             
-            pwins, nwins, draws = arena.playGames(self.args.arenaCompare, verbose=False)
+            pwins, nwins, _ = arena.playGames(self.args.arenaCompare, verbose=False)
 
-            log.info('NEW/PREV WINS : %d / %d ; DRAWS : %d' % (nwins, pwins, draws))
+            log.info('NEW/PREV WINS : %d / %d' % (nwins, pwins))
 
             if pwins + nwins == 0 or float(nwins) / (pwins + nwins) < self.args.updateThreshold:
                 log.info('REJECTING NEW MODEL')

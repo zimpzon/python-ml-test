@@ -1,33 +1,33 @@
 import unittest
+
+import numpy as np
 import TixyGame
+from TixyNNetWrapper import TixyNetWrapper
 
 class MyTest(unittest.TestCase):
    
         def test(self):
-            game = TixyGame.TixyGame(3, 5)
+            game = TixyGame.TixyGame(5, 5)
             board = game.getInitBoard()
+            wrapper = TixyNetWrapper(game)
 
-            print('initial board:')
-            print(game.stringRepresentation(board))
+            # network output: board_size * 6 planes where 0-5 are the 6 possible actions
+            #board[:] = 0
+            pi = [0.0] * 150
+            pi[10] = 1
+            tup = (board, pi, -1)
+            examples =  [tup] * 10000
 
-            print('canonical form, p1:')
-            print(game.stringRepresentation(game.getCanonicalForm(board, 1)))
+            # list of tuple (board, 150 probs, v)
+            # can predict probs + 5 from board
+            for i in range(1):
+                wrapper.train(examples)
 
-            print('canonical form, p2:')
-            print(game.stringRepresentation(game.getCanonicalForm(board, -1)))
+            # LOOKING pretty good! hits pi[100] = 1 exactly and v = -1 exactly!
+            b = examples[0][0]
+            pi, v = wrapper.predict(b)
+            print(pi)
 
-            print('board size: '+ str(game.getBoardSize()))
-            print('action size: '+ str(game.getActionSize()))
-
-            valid_moves = game.getValidMoves(board, 1)
-            print('valid moves: '+ str(valid_moves))
-
-            # expected values for moves: plane repeated w * h times, so plane 0 is the first 15, plane 3 if 60..75
-            # a 1 in a spot means that this direction (planeIdx = direction) is valid to move to for the piece at this spot.
-            planeN = valid_moves[:15]
-            print('plane N: '+ str(planeN))
-            planeS = valid_moves[45:60]
-            print('plane S: '+ str(planeS))
 
 if __name__ == '__main__':
     unittest.main()
