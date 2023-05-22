@@ -4,13 +4,14 @@ import coloredlogs
 
 from Coach import Coach
 from TixyGame import TixyGame as Game
-from utils import *
 from TixyNNetWrapper import TixyNetWrapper as nn
+from utils import dotdict
 
 log = logging.getLogger(__name__)
 
 # ------------------- TODO -------------------
-# 
+#  BUG?? When it starts hitting max depth progress seems to stop moving. But it did complete after a while.
+
 #  ADD DIRICHLET NOISE WHEN TRAINING
 #  MULTIPROCESSING!
 #    or, do simulation in C#. Load model, run sum, save output, load output from python, continue. Can then easily run multithreaded and mucsh faster.
@@ -44,12 +45,13 @@ coloredlogs.install(level='INFO')  # Change this to DEBUG to see more info.
 
 args = dotdict({
     'numIters': 1000,
-    'numEps': 100,               # Number of complete self-play games to simulate during a new iteration.
+    'numEps': 20,               # Number of complete self-play games to simulate during a new iteration.
     'tempThreshold': 1000,      #
     'updateThreshold': 0.55,    # During arena playoff, new neural net will be accepted if threshold or more of games are won.
     'maxlenOfQueue': 200000,    # Number of game examples to train the neural networks.
     'numMCTSSims': 200,        # PWE: This should be quite high? Alpha0 used 80000 for chess?
-    'numMCTSPlay': 50,        # how low can we take this?
+    'numMCTSPlay': 100,        # how low can we take this?
+    'maxMCTSDepth': 100,        # how low can we take this?
     'arenaCompare': 30,         # Number of games to play during arena play to determine if new net will be accepted.
     'cpuct': 1,
 

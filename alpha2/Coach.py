@@ -11,7 +11,7 @@ from tqdm import tqdm
 from Arena import Arena
 from MCTS import MCTS
 from TixyGame import TixyGame
-from TixyPlayers import TixyGreedyPlayer, TixyRandomPlayer
+from TixyPlayers import TixyGreedyPlayer
 
 log = logging.getLogger(__name__)
 
@@ -35,7 +35,10 @@ class Coach():
 
         while True:
             episodeStep += 1
+
             temp = int(episodeStep < self.args.tempThreshold)
+            if episodeStep == self.args.tempThreshold:
+                log.info(f'Setting temperature to {temp}')
 
             pi = self.mcts.getActionProb(board, is_training=True, temp=temp)
             sym = self.game.getSymmetries(board, pi)

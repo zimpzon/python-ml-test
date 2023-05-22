@@ -30,7 +30,7 @@ class MCTS():
         count = self.args.numMCTSSims if is_training else self.args.numMCTSPlay
         good = 0
         bad = 0
-        for i in range(count):
+        for _ in range(count):
             result = self.search(board.copy())
             if abs(result) < 0.0002:
                 bad += 1
@@ -59,7 +59,8 @@ class MCTS():
     def search(self, board, depth=0):
 
         # print("search depth " + str(depth))
-        if (depth > 100):
+        max_depth = self.args.maxMCTSDepth
+        if (depth > max_depth):
             # print("max depth reached")
             return -0.0001
         
@@ -85,9 +86,7 @@ class MCTS():
                 self.policy_for_state[s] = self.policy_for_state[s] + np.random.dirichlet(np.ones(self.game.getActionSize()) * 0.8)
                 self.policy_for_state[s] /= np.sum(self.policy_for_state[s])
 
-            #self.policy_for_state[s] = [0.5] * len(self.policy_for_state[s])
             v = v[0]
-            #v = 0.5
 
             valids = self.game.getValidMoves(board, 1)
             self.policy_for_state[s] = self.policy_for_state[s] * valids  # masking invalid moves

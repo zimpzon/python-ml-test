@@ -5,7 +5,9 @@ from TixyGame import TixyGame
 import numpy as np
 from TixyNNetWrapper import TixyNetWrapper
 from TixyPlayers import TixyGreedyPlayer, TixyHumanPlayer, TixyRandomPlayer
-from utils import *
+from utils import dotdict
+
+args = dotdict({'numMCTSPlay': 50, 'cpuct':1.0})
 
 g = TixyGame(5, 5)
 
@@ -17,10 +19,17 @@ h = TixyHumanPlayer(g).play
 n1 = TixyNetWrapper(g)
 n1.load_checkpoint('./temp/','best.pth.tar')
 
-args1 = dotdict({'numMCTSSims': 50, 'cpuct':1.0})
-mcts1 = MCTS(g, n1, args1)
+mcts1 = MCTS(g, n1, args)
+
 n1p = lambda x: np.argmax(mcts1.getActionProb(x, is_training=False, temp=0))
 
-arena = Arena.Arena(rp1, n1p, g, display=TixyGame.display)
+n2 = TixyNetWrapper(g)
+n2.load_checkpoint('./temp/','best.pth.tar')
 
-arena.playGames(20, verbose=False)
+mcts2 = MCTS(g, n2, args)
+
+n2p = lambda x: np.argmax(mcts2.getActionProb(x, is_training=False, temp=0))
+
+arena = Arena.Arena(n2p, n1p, g, display=TixyGame.display)
+
+arena.playGames(2, verbose=True)

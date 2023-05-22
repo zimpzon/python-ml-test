@@ -50,6 +50,7 @@ class Arena():
                 copy = self.game.turnBoard(board) if cur_player == -1 else board
                 print("Turn ", str(it), "Player ", str(cur_player))
                 self.display(copy)
+                print("\n")
 
             action = players[cur_player + 1](board)
             valids = self.game.getValidMoves(board)
