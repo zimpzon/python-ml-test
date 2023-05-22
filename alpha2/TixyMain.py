@@ -9,7 +9,20 @@ from TixyNNetWrapper import TixyNetWrapper as nn
 
 log = logging.getLogger(__name__)
 
-# TODO ADD DIRICHLET NOISE WHEN TRAINING!
+# ------------------- TODO -------------------
+# 
+#  ADD DIRICHLET NOISE WHEN TRAINING
+#  MULTIPROCESSING!
+#    or, do simulation in C#. Load model, run sum, save output, load output from python, continue. Can then easily run multithreaded and mucsh faster.
+#    eval could also be C#, since it is quite slow. Should speed thing up a crazy amount.     
+#  Train with random starting board? evail against previous must be symmetric, but training could be asymmetric
+
+#  Useful stats/graph:
+#   win rate in self-play (to see if player 1 or 2 wins all)
+#   number of max depth reached
+#   model accepted/rejected + win rate
+#   model loss (mostly for fun? since target keeps changing this is less useful)
+#   any way to measure performance of best model? greedy is not good enough to win ever (which is good!) could be a pure mcts?
 
 coloredlogs.install(level='INFO')  # Change this to DEBUG to see more info.
 
@@ -36,11 +49,12 @@ args = dotdict({
     'updateThreshold': 0.55,    # During arena playoff, new neural net will be accepted if threshold or more of games are won.
     'maxlenOfQueue': 200000,    # Number of game examples to train the neural networks.
     'numMCTSSims': 200,        # PWE: This should be quite high? Alpha0 used 80000 for chess?
+    'numMCTSPlay': 50,        # how low can we take this?
     'arenaCompare': 30,         # Number of games to play during arena play to determine if new net will be accepted.
     'cpuct': 1,
 
     'checkpoint': './temp/',
-    'load_model': False,
+    'load_model': True,
     'load_folder_file': ('./temp/', 'best.pth.tar'),
     'numItersForTrainExamplesHistory': 20,
 })

@@ -26,17 +26,20 @@ class MCTS():
         self.gameended_state = {}  # stores game.getGameEnded ended for board s
         self.validmoves_state = {}  # stores game.getValidMoves for board s
 
-    def getActionProb(self, board, temp=1):
-        """
-        This function performs numMCTSSims simulations of MCTS starting from
-        canonicalBoard.
+    def getActionProb(self, board, is_training: bool, temp=1):
+        count = self.args.numMCTSSims if is_training else self.args.numMCTSPlay
+        good = 0
+        bad = 0
+        for i in range(count):
+            result = self.search(board.copy())
+            if abs(result) < 0.0002:
+                bad += 1
+            else:
+                good += 1
 
-        Returns:
-            probs: a policy vector where the probability of the ith action is
-                   proportional to Nsa[(s,a)]**(1./temp)
-        """
-        for i in range(self.args.numMCTSSims):
-            self.search(board.copy())
+        ratio = (bad + 0.001)/(good + 0.001)
+        if ratio > 0.1:
+            print(f"WARNING more than 0.1 reached maxDepth. below={good}, MAXED={bad}, ratio {ratio:0.4f}")
 
         s = self.game.stringRepresentation(board)
         counts = [self.visitcount_stateaction[(s, a)] if (s, a) in self.visitcount_stateaction else 0 for a in range(self.game.getActionSize())]
@@ -54,28 +57,10 @@ class MCTS():
         return probs
 
     def search(self, board, depth=0):
-        """
-        This function performs one iteration of MCTS. It is recursively called
-        till a leaf node is found. The action chosen at each node is one that
-        has the maximum upper confidence bound as in the paper.
-
-        Once a leaf node is found, the neural network is called to return an
-        initial policy P and a value v for the state. This value is propagated
-        up the search path. In case the leaf node is a terminal state, the
-        outcome is propagated up the search path. The values of Ns, Nsa, Qsa are
-        updated.
-
-        NOTE: the return values are the negative of the value of the current
-        state. This is done since v is in [-1,1] and if v is the value of a
-        state for the current player, then its value is -v for the other player.
-
-        Returns:
-            v: the negative of the value of the current canonicalBoard
-        """
 
         # print("search depth " + str(depth))
-        if (depth > 50):
-            # print("max depth reached: 50")
+        if (depth > 100):
+            # print("max depth reached")
             return -0.0001
         
         s = self.game.stringRepresentation(board)
@@ -94,6 +79,12 @@ class MCTS():
         if s not in self.policy_for_state:
             # leaf node
             self.policy_for_state[s], v = self.nnet.predict(board)
+
+            # this dirichlet noise code was made by Codepilot. Let's try it :-) changing 0.3 to my own guess.
+            if depth == 0:
+                self.policy_for_state[s] = self.policy_for_state[s] + np.random.dirichlet(np.ones(self.game.getActionSize()) * 0.8)
+                self.policy_for_state[s] /= np.sum(self.policy_for_state[s])
+
             #self.policy_for_state[s] = [0.5] * len(self.policy_for_state[s])
             v = v[0]
             #v = 0.5
@@ -122,13 +113,7 @@ class MCTS():
         cur_best = -float('inf')
         best_act = -1
 
-        # valid_indices = np.nonzero(valids)[0] # wtf this returns an array with values at idx 0 and datatype at idx1
-        # a = np.random.choice(valid_indices)
-
         # pick the action with the highest upper confidence bound
-
-        # print(f"visitcount S: {self.visitcount_state[s]:.8f}")
-        # stuck in a loop here
         for a in range(self.game.getActionSize()):
             if valids[a]:
                 if (s, a) in self.q_for_stateaction:
@@ -167,7 +152,7 @@ class MCTS():
         if (s, a) in self.q_for_stateaction:
             visit_count_sa = self.visitcount_stateaction[(s, a)]
             q_sa = self.q_for_stateaction[(s, a)]
-            new_q =  (visit_count_sa * q_sa + v) / (visit_count_sa + 1)
+            new_q = (visit_count_sa * q_sa + v) / (visit_count_sa + 1)
 
             self.q_for_stateaction[(s, a)] = new_q
             # self.visitcount_stateaction[(s, a)] += 1
