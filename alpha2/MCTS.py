@@ -75,7 +75,9 @@ class MCTS():
             # since MCTS starts from "real game" position, a depth of 1 is normal
             game_ended = self.gameended_state[s]
             # print(f"terminal node at depth {depth}, result={game_ended}")
-            return -game_ended
+
+            # scale result by depth to favor faster wins
+            return max(-game_ended * 2 - depth * 0.02, 0.25)
 
         if s not in self.policy_for_state:
             # leaf node
@@ -146,18 +148,24 @@ class MCTS():
         next_s = self.game.turnBoard(next_s)
 
         v = self.search(next_s, depth + 1)
+
+        # this is a hack. if max states was reached (due to endless looping) discourage this state. this should get out of the loop.
+        val = v # this might have fixed the endless looping problem (need more testing), but model was often rejected.
+        # if abs(v) < 0.0002:
+        #     val = -1
+
         # print(f"backpropagating v: {v:.8f}, depth: {depth}, player: {Info.getPlayerId(self.game, board, valids)}")
 
         if (s, a) in self.q_for_stateaction:
             visit_count_sa = self.visitcount_stateaction[(s, a)]
             q_sa = self.q_for_stateaction[(s, a)]
-            new_q = (visit_count_sa * q_sa + v) / (visit_count_sa + 1)
+            new_q = (visit_count_sa * q_sa + val) / (visit_count_sa + 1)
 
             self.q_for_stateaction[(s, a)] = new_q
             # self.visitcount_stateaction[(s, a)] += 1
 
         else:
-            self.q_for_stateaction[(s, a)] = v
+            self.q_for_stateaction[(s, a)] = val
             # self.visitcount_stateaction[(s, a)] = 1
 
         # self.visitcount_state[s] += 1
