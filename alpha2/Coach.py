@@ -42,8 +42,8 @@ class Coach():
             # this is a draw, return as a loss to discourage states leading to this
             max_depth = self.args.maxMCTSDepth
             if (episodeStep > max_depth):
-                print(f"episode was a draw ending at step {episodeStep}, all moves for both players gets discouraged in NETWORK")
-                return [(x[0], x[1], -0.5) for x in trainExamples]
+                print(f"episode was a draw ending at step {episodeStep}, returning 0")
+                return [(x[0], x[1], 0) for x in trainExamples]
 
             temp = int(episodeStep < self.args.tempThreshold)
             if episodeStep == self.args.tempThreshold:
