@@ -1,5 +1,8 @@
 import numpy as np
 
+from TixyGame import TixyGame
+from TixyLogic import TixyBoard
+
 
 class TixyRandomPlayer:
     def __init__(self, game):
@@ -47,18 +50,20 @@ class TixyHumanPlayer():
         self.game = game
 
     def play(self, board):
-        # display(board)
+        TixyGame.display(board)
+
+        self.moves = []
         valid = self.game.getValidMoves(board, 1)
+
         for i in range(len(valid)):
             if valid[i]:
-                x = i % 5
-                y = i // 5
-                move = i // 25
-                piece = board[y, x]
-                print(f'valid move: {i}, piece: {piece}, move: {move}, x: {x}, y: {y}')
+                action = i
+                row, col, piece, dx, dy = self.game.decodeAction(board, action)
+                print(f'[{len(self.moves)}]: {i}, row: {row}, col: {col}, dx: {dx}, dy: {dy}, piece: {piece}')
+                self.moves.append((i, row, col, dx, dy, piece))
 
-
-        while True:
-            input_move = input()
-            input_a = input_move.split(" ")
-            print('your move:' + input_a)
+        print('your move, punk:')
+        input_move = input()
+        id = int(input_move)
+        move = self.moves[id]
+        return move[0]

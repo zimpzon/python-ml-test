@@ -24,12 +24,12 @@ mcts1 = MCTS(g, n1, args)
 n1p = lambda x: np.argmax(mcts1.getActionProb(x, is_training=False, temp=0))
 
 n2 = TixyNetWrapper(g)
-n2.load_checkpoint('./temp/','best.pth.tar')
+n2.load_checkpoint('./temp/','checkpoint_3.pth.tar')
 
 mcts2 = MCTS(g, n2, args)
 
 n2p = lambda x: np.argmax(mcts2.getActionProb(x, is_training=False, temp=0))
 
-arena = Arena.Arena(n2p, n1p, g, display=TixyGame.display)
+arena = Arena.Arena(h, n1p, g, display=TixyGame.display)
 
 arena.playGames(10, verbose=False)
