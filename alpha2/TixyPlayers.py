@@ -26,8 +26,14 @@ class TixyGreedyPlayer:
             
             action = i
             row, col, piece, dx, dy = self.game.decodeAction(board, action)
+
+            is_winning_move = row + dy == 0
+            if is_winning_move:
+                return action
+            
             piece = board[row + dy, col + dx]
-            if (piece != 0):
+            can_capture = piece != 0
+            if can_capture:
                 return action
 
         a = np.random.randint(self.game.getActionSize())
@@ -49,20 +55,10 @@ class TixyHumanPlayer():
                 y = i // 5
                 move = i // 25
                 piece = board[y, x]
+                print(f'valid move: {i}, piece: {piece}, move: {move}, x: {x}, y: {y}')
 
-                print("[", int(i/self.game.n), int(i%self.game.n), end="] ")
+
         while True:
             input_move = input()
             input_a = input_move.split(" ")
-            if len(input_a) == 2:
-                try:
-                    x,y = [int(i) for i in input_a]
-                    if ((0 <= x) and (x < self.game.n) and (0 <= y) and (y < self.game.n)) or \
-                            ((x == self.game.n) and (y == 0)):
-                        a = self.game.n * x + y if x != -1 else self.game.n ** 2
-                        if valid[a]:
-                            break
-                except ValueError:
-                    # Input needs to be an integer
-                    'Invalid integer'
-            print('Invalid move')
+            print('your move:' + input_a)

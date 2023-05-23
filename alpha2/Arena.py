@@ -44,6 +44,9 @@ class Arena():
         
         while self.game.getGameEnded(board, 1) == 0:
             it += 1
+            max_depth = 50 # pwe todo: hardcoded for now
+            if (it > max_depth):
+                return 0
 
             if verbose:
                 assert self.display
@@ -103,7 +106,7 @@ class Arena():
             else:
                 draws += 1
 
-        print("pl1: %d, pl2: %d" % (oneWon, twoWon))
+        print("pl1: %d, pl2: %d, draw: %d" % (oneWon, twoWon, draws))
               
         self.player1, self.player2 = self.player2, self.player1
 
@@ -116,7 +119,7 @@ class Arena():
             else:
                 draws += 1
 
-        print("pl1: %d, pl2: %d" % (oneWon, twoWon))
+        print("pl1: %d, pl2: %d, draw: %d" % (oneWon, twoWon, draws))
 
         # prev, new
         return oneWon, twoWon, draws

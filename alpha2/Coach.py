@@ -28,6 +28,8 @@ class Coach():
         self.skipFirstSelfPlay = False  # can be overriden in loadTrainExamples()
 
     def executeEpisode(self):
+
+        # trainExamples is (state, pi, player)
         trainExamples = []
         board = self.game.getInitBoard()
         self.curPlayer = 1
@@ -36,11 +38,19 @@ class Coach():
         while True:
             episodeStep += 1
 
+            # check if episode has been going for too long, probably reached a loop state
+            # this is a draw, return as a loss to discourage states leading to this
+            max_depth = self.args.maxMCTSDepth
+            if (episodeStep > max_depth):
+                print(f"episode was a draw ending at step {episodeStep}, all moves for both players gets discouraged in NETWORK")
+                return [(x[0], x[1], -0.5) for x in trainExamples]
+
             temp = int(episodeStep < self.args.tempThreshold)
             if episodeStep == self.args.tempThreshold:
                 log.info(f'Setting temperature to {temp}')
 
             pi = self.mcts.getActionProb(board, is_training=True, temp=temp)
+
             sym = self.game.getSymmetries(board, pi)
             for b, p in sym:
                 trainExamples.append([b, p, self.curPlayer])
@@ -95,17 +105,10 @@ class Coach():
             pmcts = MCTS(self.game, self.pnet, self.args)
 
             self.nnet.train(trainExamples)
-            nmcts = MCTS(self.game, self.nnet, self.args)
 
-            # log.info('PITTING AGAINST RANDOM PLAYER')
-            # new_against_rnd = MCTS(self.game, self.nnet, self.args)
-            # arena = Arena(TixyRandomPlayer(self.game).play,
-            #               lambda x: np.argmax(new_against_rnd.getActionProb(x, is_training=False, temp=0)),
-            #               self.game,
-            #               display = TixyGame.display)
-            
-            # pwins, nwins, draws = arena.playGames(self.args.arenaCompare, verbose=False)
-            # log.info('NEW/RND : %d / %d ' % (nwins, pwins))
+            self.nnet.save_checkpoint(folder=self.args.checkpoint, filename='just-before-compare.pth.tar')
+
+            nmcts = MCTS(self.game, self.nnet, self.args)
 
             log.info('PITTING AGAINST GREEDY PLAYER')
             new_against_rnd = MCTS(self.game, self.nnet, self.args)
@@ -115,15 +118,18 @@ class Coach():
                           display = TixyGame.display)
             
             pwins, nwins, draws = arena.playGames(self.args.arenaCompare, verbose=False)
-            log.info('NEW/GREEDY : %d / %d' % (nwins, pwins))
+            log.info('NEW/GREEDY : %d / %d (draws: %d)' % (nwins, pwins, draws))
 
             log.info('PITTING AGAINST PREVIOUS VERSION')
             arena = Arena(lambda x: np.argmax(pmcts.getActionProb(x, is_training=False, temp=0)),
                           lambda x: np.argmax(nmcts.getActionProb(x, is_training=False, temp=0)), self.game, display = TixyGame.display)
             
-            pwins, nwins, _ = arena.playGames(self.args.arenaCompare, verbose=False)
+            pwins, nwins, draws = arena.playGames(self.args.arenaCompare, verbose=False)
 
-            log.info('NEW/PREV WINS : %d / %d' % (nwins, pwins))
+            log.info('NEW/PREV WINS : %d / %d (draws: %d)' % (nwins, pwins, draws))
+
+            # do not want draws, count them as losses
+            pwins += draws
 
             if pwins + nwins == 0 or float(nwins) / (pwins + nwins) < self.args.updateThreshold:
                 log.info('REJECTING NEW MODEL')

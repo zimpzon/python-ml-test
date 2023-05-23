@@ -10,9 +10,6 @@ EPS = 1e-8
 log = logging.getLogger(__name__)
 
 class MCTS():
-    """
-    This class handles the MCTS tree.
-    """
 
     def __init__(self, game, nnet, args):
         self.game = game
@@ -27,19 +24,12 @@ class MCTS():
         self.validmoves_state = {}  # stores game.getValidMoves for board s
 
     def getActionProb(self, board, is_training: bool, temp=1):
-        count = self.args.numMCTSSims if is_training else self.args.numMCTSPlay
-        good = 0
-        bad = 0
-        for _ in range(count):
-            result = self.search(board.copy())
-            if abs(result) < 0.0002:
-                bad += 1
-            else:
-                good += 1
+        self.is_training = is_training
 
-        ratio = (bad + 0.001)/(good + 0.001)
-        if ratio > 0.1:
-            print(f"WARNING more than 0.1 reached maxDepth. below={good}, MAXED={bad}, ratio {ratio:0.4f}")
+        count = self.args.numMCTSSims if is_training else self.args.numMCTSPlay
+
+        for _ in range(count):
+            self.search(board.copy(), cur_player=1)
 
         s = self.game.stringRepresentation(board)
         counts = [self.visitcount_stateaction[(s, a)] if (s, a) in self.visitcount_stateaction else 0 for a in range(self.game.getActionSize())]
@@ -56,13 +46,12 @@ class MCTS():
         probs = [x / counts_sum for x in counts]
         return probs
 
-    def search(self, board, depth=0):
+    def search(self, board, cur_player, depth=0):
 
-        # print("search depth " + str(depth))
         max_depth = self.args.maxMCTSDepth
         if (depth > max_depth):
-            # print("max depth reached")
-            return -0.0001
+            draw_value = 0
+            return draw_value
         
         s = self.game.stringRepresentation(board)
 
@@ -76,22 +65,28 @@ class MCTS():
             game_ended = self.gameended_state[s]
             # print(f"terminal node at depth {depth}, result={game_ended}")
 
-            # scale result by depth to favor faster wins
-            return max(-game_ended * 2 - depth * 0.02, 0.25)
+            return -game_ended
+        
+            # scale result by depth to favor faster wins. it will also punish faster loss more, and slow losses less.
+            #return max(-game_ended * 2 - depth * 0.02, 0.25)
 
         if s not in self.policy_for_state:
             # leaf node
             self.policy_for_state[s], v = self.nnet.predict(board)
-
-            # this dirichlet noise code was made by Codepilot. Let's try it :-) changing 0.3 to my own guess.
-            if depth == 0:
-                self.policy_for_state[s] = self.policy_for_state[s] + np.random.dirichlet(np.ones(self.game.getActionSize()) * 0.8)
-                self.policy_for_state[s] /= np.sum(self.policy_for_state[s])
-
             v = v[0]
 
+            # add noise to root node when training to avoid overfitting to a limited number of strategies.
+            if depth == 0 and self.is_training:
+                epsilon = 0.5 # noise ratio
+                dirichlet_alpha = 0.5
+                noise = np.random.dirichlet(np.ones(self.game.getActionSize()) * dirichlet_alpha)
+                self.policy_for_state[s] = (1 - epsilon) * self.policy_for_state[s] + epsilon * noise
+                self.policy_for_state[s] /= np.sum(self.policy_for_state[s])
+
+            # mask invalid moves
             valids = self.game.getValidMoves(board, 1)
-            self.policy_for_state[s] = self.policy_for_state[s] * valids  # masking invalid moves
+            self.policy_for_state[s] = self.policy_for_state[s] * valids
+
             sum_policy_state = np.sum(self.policy_for_state[s])
             if sum_policy_state > 0:
                 self.policy_for_state[s] /= sum_policy_state  # renormalize
@@ -107,7 +102,6 @@ class MCTS():
             self.validmoves_state[s] = valids
             self.visitcount_state[s] = 0
 
-            # print(f"expanded node at depth {depth}, v: {v:.8f}, player: {Info.getPlayerId(self.game, board, valids)}")
             return -v
 
         valids = self.validmoves_state[s]
@@ -147,12 +141,10 @@ class MCTS():
         next_s, _ = self.game.getNextState(board, 1, a)
         next_s = self.game.turnBoard(next_s)
 
-        v = self.search(next_s, depth + 1)
+        v = self.search(next_s, cur_player * -1, depth + 1)
 
-        # this is a hack. if max states was reached (due to endless looping) discourage this state. this should get out of the loop.
-        val = v # this might have fixed the endless looping problem (need more testing), but model was often rejected.
-        # if abs(v) < 0.0002:
-        #     val = -1
+        # try no penalty for draws, in a perfect game they the best moves and should not be discouraged
+        val = v
 
         # print(f"backpropagating v: {v:.8f}, depth: {depth}, player: {Info.getPlayerId(self.game, board, valids)}")
 
@@ -162,11 +154,8 @@ class MCTS():
             new_q = (visit_count_sa * q_sa + val) / (visit_count_sa + 1)
 
             self.q_for_stateaction[(s, a)] = new_q
-            # self.visitcount_stateaction[(s, a)] += 1
 
         else:
             self.q_for_stateaction[(s, a)] = val
-            # self.visitcount_stateaction[(s, a)] = 1
 
-        # self.visitcount_state[s] += 1
         return -v

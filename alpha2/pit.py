@@ -7,7 +7,7 @@ from TixyNNetWrapper import TixyNetWrapper
 from TixyPlayers import TixyGreedyPlayer, TixyHumanPlayer, TixyRandomPlayer
 from utils import dotdict
 
-args = dotdict({'numMCTSPlay': 50, 'cpuct':1.0})
+args = dotdict({'numMCTSPlay': 50, 'cpuct':1.0, 'maxMCTSDepth': 100})
 
 g = TixyGame(5, 5)
 
@@ -32,4 +32,4 @@ n2p = lambda x: np.argmax(mcts2.getActionProb(x, is_training=False, temp=0))
 
 arena = Arena.Arena(n2p, n1p, g, display=TixyGame.display)
 
-arena.playGames(2, verbose=True)
+arena.playGames(10, verbose=False)
