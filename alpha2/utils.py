@@ -20,16 +20,3 @@ class AverageMeter(object):
 class dotdict(dict):
     def __getattr__(self, name):
         return self[name]
-
-class Info:
-    @staticmethod
-    def getPlayerId(game, board, actions):
-        for i in range(game.getActionSize()):
-            if actions[i] > 0:
-                a = i
-                idx = a % 25
-                x = idx % 5
-                y = idx // 5
-                piece = board[y, x]
-                assert piece != 0
-                return 1 if piece == 2 else 2

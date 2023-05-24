@@ -11,7 +11,7 @@ args = dotdict({
     'cpuct': 1,
 })
 
-g = TixyGame(5, 5)
+g = TixyGame()
 
 n1 = nn(g)
 n1.load_checkpoint(folder='./temp/', filename='best.pth.tar')

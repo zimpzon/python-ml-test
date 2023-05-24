@@ -7,7 +7,7 @@ from TixyNNetWrapper import TixyNetWrapper
 class MyTest(unittest.TestCase):
    
         def test(self):
-            game = TixyGame.TixyGame(5, 5)
+            game = TixyGame.TixyGame()
             board = game.getInitBoard()
             wrapper = TixyNetWrapper(game)
 

@@ -49,25 +49,25 @@ coloredlogs.install(level='INFO')  # Change this to DEBUG to see more info.
 
 args = dotdict({
     'numIters': 1000,
-    'numEps': 50,               # Number of complete self-play games to simulate during a new iteration.
-    'tempThreshold': 1000,      # 1000
+    'numEps': 20,               # Number of complete self-play games to simulate during a new iteration.
+    'tempThreshold': 100000,      # 1000
     'updateThreshold': 0.55,    # During arena playoff, new neural net will be accepted if threshold or more of games are won.
     'maxlenOfQueue': 200000,    # Number of game examples to train the neural networks.
-    'numMCTSSims': 300,        # PWE: This should be quite high? Alpha0 used 80000 for chess?
-    'numMCTSPlay': 200,        # how low can we take this?
-    'maxMCTSDepth': 50,        # how low can we take this?
+    'numMCTSSims': 1000,        # PWE: This should be quite high? Alpha0 used 80000 for chess?
+    'numMCTSPlay': 500,        # how low can we take this?
+    'maxMCTSDepth': 200,        # how low can we take this?
     'arenaCompare': 30,         # Number of games to play during arena play to determine if new net will be accepted.
     'cpuct': 1,
 
     'checkpoint': './temp/',
-    'load_model': True,
+    'load_model': False,
     'load_folder_file': ('./temp/', 'best.pth.tar'),
     'numItersForTrainExamplesHistory': 20,
 })
 
 def main():
     log.info('Loading %s...', Game.__name__)
-    g = Game(5, 5)
+    g = Game()
 
     log.info('Loading %s...', nn.__name__)
     nnet = nn(g)

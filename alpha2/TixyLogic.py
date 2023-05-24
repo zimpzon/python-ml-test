@@ -29,30 +29,21 @@ class TixyBoard():
     def getStartingBoard(w: int, h: int) -> np.ndarray:
         board = np.zeros((h, w), dtype=int)
 
-        board[4, 0] = 1
-        board[4, 1] = 3
-        board[4, 2] = 1
-        board[4, 3] = 3
-        board[4, 4] = 4
+        board[6, 0] = 1
+        board[6, 1] = 3
+        board[6, 2] = 4
+        board[6, 3] = 2
+        board[6, 4] = 4
+        board[6, 5] = 3
+        board[6, 6] = 1
 
         board[0, 0] = -1
         board[0, 1] = -3
-        board[0, 2] = -1
-        board[0, 3] = -3
+        board[0, 2] = -4
+        board[0, 3] = -2
         board[0, 4] = -4
-
-        # PWE: THIS gave me divide by zero
-        # board[4, 0] = 1
-        # board[4, 1] = 3
-        # board[4, 2] = 1
-        # board[4, 3] = 3
-        # board[4, 4] = 4
-
-        # board[0, 0] = 1
-        # board[0, 1] = -3
-        # board[0, 2] = -1
-        # board[0, 3] = -3
-        # board[0, 4] = 4
+        board[0, 5] = -3
+        board[0, 6] = -1
 
         return board
 

@@ -3,8 +3,6 @@ import math
 
 import numpy as np
 
-from utils import Info
-
 EPS = 1e-8
 
 log = logging.getLogger(__name__)
@@ -23,7 +21,7 @@ class MCTS():
         self.gameended_state = {}  # stores game.getGameEnded ended for board s
         self.validmoves_state = {}  # stores game.getValidMoves for board s
 
-    def getActionProb(self, board, is_training: bool, temp=1):
+    def getActionProb(self, board, is_training: bool, move_count=1):
         self.is_training = is_training
 
         count = self.args.numMCTSSims if is_training else self.args.numMCTSPlay
@@ -32,17 +30,32 @@ class MCTS():
             self.search(board.copy(), cur_player=1)
 
         s = self.game.stringRepresentation(board)
+
+        # visit counts for all actions in current state s = how many times the action was taken
         counts = [self.visitcount_stateaction[(s, a)] if (s, a) in self.visitcount_stateaction else 0 for a in range(self.game.getActionSize())]
 
-        if temp == 0:
+        if not is_training:
             bestAs = np.array(np.argwhere(counts == np.max(counts))).flatten()
             bestA = np.random.choice(bestAs)
-            probs = [0] * len(counts)
+            probs = [1 / float(len(counts)) for _ in counts]
             probs[bestA] = 1
             return probs
 
+        temp = 1 if move_count < 20 else 0.1
+
         counts = [x ** (1. / temp) for x in counts]
         counts_sum = float(sum(counts))
+
+        if counts_sum == 0:
+            # no actions were visited for this state
+            # this happens/can happen at the very last simulation step
+            print("WARNING: current main game state did not record any visitcounts, returning 1 for all actions")
+            valids = self.game.getValidMoves(board, 1)
+            probs = [1 / float(len(counts)) for _ in counts] * valids
+            sum_probs = float(sum(probs))
+            probs = [x / sum_probs for x in probs]
+            return probs
+
         probs = [x / counts_sum for x in counts]
         return probs
 
@@ -51,6 +64,7 @@ class MCTS():
         max_depth = self.args.maxMCTSDepth
         if (depth > max_depth):
             draw_value = 0
+            # print(f"reached max depth {max_depth}, returning draw_value={draw_value}")
             return draw_value
         
         s = self.game.stringRepresentation(board)
@@ -63,8 +77,9 @@ class MCTS():
             # terminal node
             # since MCTS starts from "real game" position, a depth of 1 is normal
             game_ended = self.gameended_state[s]
-            # print(f"terminal node at depth {depth}, result={game_ended}")
+            #print(f"terminal node at depth {depth}, result={game_ended}")
 
+            self.visitcount_state[s] = 1
             return -game_ended
         
             # scale result by depth to favor faster wins. it will also punish faster loss more, and slow losses less.
@@ -143,10 +158,8 @@ class MCTS():
 
         v = self.search(next_s, cur_player * -1, depth + 1)
 
-        # try no penalty for draws, in a perfect game they the best moves and should not be discouraged
+        # no penalty for draws, in a perfect game they the best moves and should not be discouraged
         val = v
-
-        # print(f"backpropagating v: {v:.8f}, depth: {depth}, player: {Info.getPlayerId(self.game, board, valids)}")
 
         if (s, a) in self.q_for_stateaction:
             visit_count_sa = self.visitcount_stateaction[(s, a)]

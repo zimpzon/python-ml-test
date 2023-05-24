@@ -31,7 +31,7 @@ class TixyGreedyPlayer:
             action = i
             row, col, piece, dx, dy = self.game.decodeAction(board, action)
 
-            is_winning_move = row + dy == 0
+            is_winning_move = row + dy == 0 and piece == 2 # I
             if is_winning_move:
                 return action
             
@@ -54,7 +54,7 @@ class TixyHumanPlayer():
         input_move = input_move.upper()
 
         # Define the mapping from letters to column indexes
-        col_mapping = {'A': 0, 'B': 1, 'C': 2, 'D': 3, 'E': 4}
+        col_mapping = {'A': 0, 'B': 1, 'C': 2, 'D': 3, 'E': 4, 'F': 5, 'G': 6 }
         
         # Split the input string into the 'from' and 'to' parts
         from_str, to_str = input_move.split()
@@ -85,7 +85,7 @@ class TixyHumanPlayer():
 
     def is_valid_input(self, input_move):
         # Define the regex pattern for the input format
-        pattern = r'^[A-Ea-e][1-5]\s[A-Ea-e][1-5]$'
+        pattern = r'^[A-Ga-g][1-7]\s[A-Ga-g][1-7]$'
         
         # Check if the input string matches the pattern
         match = re.match(pattern, input_move)

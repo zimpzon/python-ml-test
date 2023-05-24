@@ -44,7 +44,7 @@ class Arena():
         
         while self.game.getGameEnded(board, 1) == 0:
             it += 1
-            max_depth = 50 # pwe todo: hardcoded for now
+            max_depth = 500 # pwe todo: hardcoded for now
             if (it > max_depth):
                 return 0
 

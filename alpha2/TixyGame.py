@@ -4,9 +4,9 @@ from Game import Game
 from TixyLogic import TixyBoard
 
 class TixyGame(Game):
-    def __init__(self, w, h):
-        self.W = w
-        self.H = h
+    def __init__(self):
+        self.W = 7
+        self.H = 7
 
     def getInitBoard(self):
         # starting board, same format as returned by getNextState
@@ -91,15 +91,16 @@ class TixyGame(Game):
         return valid_moves
 
     def getGameEnded(self, board, player: int = 0) -> float:
-        pl1_no_pieces = np.all(board <= 0)
-        pl2_mo_pieces = np.all(board >= 0)
+        piece_i_id = 2
+        pl1_no_i = np.all(board != piece_i_id)
+        pl2_no_i = np.all(board != -piece_i_id)
 
-        row0_has_positive_value = np.any(board[0] > 0)
-        row4_has_negative_value = np.any(board[4] < 0)
+        row_top_has_positive_i = np.any(board[0] == piece_i_id)
+        row_bottom_has_negative_i = np.any(board[self.H - 1] == -piece_i_id)
 
-        if (row0_has_positive_value or pl2_mo_pieces):
+        if (row_top_has_positive_i or pl2_no_i):
             return 1
-        elif (row4_has_negative_value or pl1_no_pieces):
+        elif (row_bottom_has_negative_i or pl1_no_i):
             return -1
         else:
             return 0
@@ -145,13 +146,13 @@ class TixyGame(Game):
         mapping = {0: '.', 1: 'T', 2: 'I', 3: 'X', 4: 'Y', -1: 't', -2: 'i', -3: 'x', -4: 'y'}
         
         # Define the column labels
-        col_labels = ['A', 'B', 'C', 'D', 'E']
+        col_labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
         
         # Print the column labels
         print()
         print()
         print('    ' + ' '.join(col_labels))
-        print('  +' + '-'*11 + '+')
+        print('  +' + '-'*13 + '+')
         
         # Print each row with row number and border
         for i in range(len(board)):
@@ -161,6 +162,6 @@ class TixyGame(Game):
             print(f'| {i+1}')
         
         # Print the bottom border
-        print('  +' + '-'*11 + '+')
+        print('  +' + '-'*13 + '+')
         print('    ' + ' '.join(col_labels))
         print()

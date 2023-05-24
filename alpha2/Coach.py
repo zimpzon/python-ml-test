@@ -49,7 +49,7 @@ class Coach():
             if episodeStep == self.args.tempThreshold:
                 log.info(f'Setting temperature to {temp}')
 
-            pi = self.mcts.getActionProb(board, is_training=True, temp=temp)
+            pi = self.mcts.getActionProb(board, is_training=True, move_count=episodeStep)
 
             sym = self.game.getSymmetries(board, pi)
             for b, p in sym:
@@ -113,7 +113,7 @@ class Coach():
             log.info('PITTING AGAINST GREEDY PLAYER')
             new_against_rnd = MCTS(self.game, self.nnet, self.args)
             arena = Arena(TixyGreedyPlayer(self.game).play,
-                          lambda x: np.argmax(new_against_rnd.getActionProb(x, is_training=False, temp=0)),
+                          lambda x: np.argmax(new_against_rnd.getActionProb(x, is_training=False)),
                           self.game,
                           display = TixyGame.display)
             
@@ -121,8 +121,8 @@ class Coach():
             log.info('NEW/GREEDY : %d / %d (draws: %d)' % (nwins, pwins, draws))
 
             log.info('PITTING AGAINST PREVIOUS VERSION')
-            arena = Arena(lambda x: np.argmax(pmcts.getActionProb(x, is_training=False, temp=0)),
-                          lambda x: np.argmax(nmcts.getActionProb(x, is_training=False, temp=0)), self.game, display = TixyGame.display)
+            arena = Arena(lambda x: np.argmax(pmcts.getActionProb(x, is_training=False)),
+                          lambda x: np.argmax(nmcts.getActionProb(x, is_training=False)), self.game, display = TixyGame.display)
             
             pwins, nwins, draws = arena.playGames(self.args.arenaCompare, verbose=False)
 
