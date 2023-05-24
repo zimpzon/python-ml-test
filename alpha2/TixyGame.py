@@ -136,5 +136,31 @@ class TixyGame(Game):
         return np.array2string(board)
 
     @staticmethod
-    def display(board):
+    def display_simple(board):
         print(np.array2string(board))
+
+    @staticmethod
+    def display(board):
+        # Define the mapping from numbers to characters
+        mapping = {0: '.', 1: 'T', 2: 'I', 3: 'X', 4: 'Y', -1: 't', -2: 'i', -3: 'x', -4: 'y'}
+        
+        # Define the column labels
+        col_labels = ['A', 'B', 'C', 'D', 'E']
+        
+        # Print the column labels
+        print()
+        print()
+        print('    ' + ' '.join(col_labels))
+        print('  +' + '-'*11 + '+')
+        
+        # Print each row with row number and border
+        for i in range(len(board)):
+            print(f'{i+1} |', end=' ')
+            for j in range(len(board[i])):
+                print(mapping[board[i][j]], end=' ')
+            print(f'| {i+1}')
+        
+        # Print the bottom border
+        print('  +' + '-'*11 + '+')
+        print('    ' + ' '.join(col_labels))
+        print()
